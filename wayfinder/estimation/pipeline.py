@@ -101,7 +101,7 @@ def run(seq, calib: Calib, imu_p, use_cam=False, use_lidar=False, prior_map=None
     def on_cam(k):
         vio.process(seq["frames"][k])
 
-    out_t, out_p, out_R = [], [], []
+    out_t, out_p, out_R, out_v, out_sig = [], [], [], [], []
     ei = 0
     for i in range(len(t) - 1):
         w = 0.5 * (gyro[i] + gyro[i + 1])
@@ -120,12 +120,16 @@ def run(seq, calib: Calib, imu_p, use_cam=False, use_lidar=False, prior_map=None
             out_t.append(t[i + 1])
             out_p.append(f.p.copy())
             out_R.append(f.R.copy())
+            out_v.append(f.v.copy())
+            d = np.sqrt(np.maximum(np.diag(f.P)[:9], 0.0))
+            out_sig.append(np.r_[d[0:3], d[3:6], np.degrees(d[6:9])])
             if est_lever:
                 ext_trace.append(f.t_ext.copy())
     if use_cam:
         stats["cam_updates"] = vio.n_updates
         stats["features_used"] = vio.n_feats_used
-    return dict(t=np.array(out_t), p=np.array(out_p), R=np.array(out_R), stats=stats,
+    return dict(t=np.array(out_t), p=np.array(out_p), R=np.array(out_R), v=np.array(out_v),
+                sig=np.array(out_sig), stats=stats,
                 bg=f.bg.copy(), ba=f.ba.copy(), scan_log=scan_log,
                 t_ext=None if not est_lever else f.t_ext.copy(), ext_trace=np.array(ext_trace))
 

@@ -9,7 +9,7 @@ compensation, MSCKF visual-inertial odometry, LiDAR-inertial odometry and map-ba
 > random walk, lens distortion, rolling LiDAR sweep, outliers, clock offsets, CAD errors, a changed scene), but
 > it is still a simulator. Results will not transfer one-to-one to hardware.
 
-The dashboard in `web/` is a static page (animated pipeline, 3-D flight replay, calibration and localisation views).
+The dashboard in `web/` is a static page (animated pipeline, 3-D flight replay, sensor monitor, state estimation with uncertainty, calibration and localisation views, experiment settings and export).
 
 ## Results
 
@@ -18,12 +18,12 @@ Single 100 s figure-eight flight, 465 m path, 22–27 m above ground. ATE is RMS
 | Configuration | ATE (m) | RPE 5 s (m) | Rot. RMSE (°) | End drift |
 |---|---|---|---|---|
 | IMU only | 156.351 | 38.443 | 12.17 | 120.50 % |
-| VIO (MSCKF) | 0.581 | 0.492 | 0.37 | 0.14 % |
+| VIO (MSCKF) | 0.580 | 0.491 | 0.37 | 0.14 % |
 | LIO | 0.138 | 0.087 | 0.18 | 0.03 % |
 | VIO + LIO | 0.081 | 0.059 | 0.11 | 0.03 % |
 | VIO, uncalibrated | 10.187 | 7.553 | 7.01 | 6.62 % |
 | LIO, uncalibrated | 3.252 | 1.586 | 1.43 | 2.35 % |
-| VIO, no time sync | 0.839 | 0.827 | 0.49 | 0.29 % |
+| VIO, no time sync | 0.838 | 0.826 | 0.49 | 0.29 % |
 | LIO, no time sync | 0.159 | 0.093 | 0.27 | 0.02 % |
 | VIO, CAD lever arm | 0.587 | 0.501 | 0.38 | 0.14 % |
 | LIO, no de-skew | 0.376 | 0.223 | 0.69 | 0.26 % |
@@ -33,7 +33,7 @@ Highlights:
 * Fusing camera and LiDAR gives **0.081 m** ATE; LiDAR-inertial alone 0.138 m; MSCKF VIO alone 0.58 m.
 * Rolling-sweep distortion matters: without motion compensation LIO degrades from 0.138 m to 0.376 m.
 * Skipping calibration is expensive: 10.2 m (VIO) and 3.25 m (LIO).
-* A camera clock error of 5 / 10 / 20 / 40 ms raises VIO ATE to 0.68 / 0.87 / 1.32 / 2.27 m (from 0.58 m).
+* A camera clock error of 5 / 10 / 20 / 40 ms raises VIO ATE to 0.68 / 0.86 / 1.32 / 2.27 m (from 0.58 m).
 * The 3 cm CAD lever-arm error barely moves VIO ATE (0.59 m with CAD vs 0.58 m estimated): it is below this filter's noise floor, so the lever-arm result is a calibration-accuracy result, not an odometry gain.
 
 ### Calibration
@@ -47,7 +47,7 @@ Highlights:
 | LiDAR→IMU rotation | n/a | 0.07° error | CAD was 3.09° off |
 | Camera time offset | 12.3 ms | 12.15 ms | 0.15 ms error |
 | LiDAR time offset | -7.1 ms | -7.27 ms | 0.17 ms error; **44.7 ms without motion compensation** |
-| Camera lever arm | [0.12, 0.02, -0.06] | [0.123, 0.021, -0.062] | 0.37 cm error, CAD was 3.09 cm |
+| Camera lever arm | [0.12, 0.02, -0.06] | [0.121, 0.021, -0.061] | 0.21 cm error, CAD was 3.09 cm |
 | LiDAR lever arm | [0.0, 0.0, 0.09] | [-0.011, 0.052, 0.092] | 5.29 cm error, CAD was 2.77 cm: **not adopted** |
 
 ### Map-based localisation
@@ -57,8 +57,12 @@ VIO+LIO poses (survey ATE 0.098 m), so the map carries drift and noise. The live
 trajectory, an independent surface sample and a changed scene (12% of trees removed, 4 boxes added).
 
 * Kidnapped start: a guess 6.2 m / 35° off is recovered to 0.17 m / 0.86°.
-* Tracking against the map: **0.194 m** absolute RMSE (no alignment). LiDAR odometry alone on the same flight: 0.978 m, ending 0.44 m off.
-* Relocalisation from random offsets (up to 7 m, 40°): 92 % success over 25 trials (< 0.5 m and < 2 deg), median error 0.375 m.
+* Tracking against the map: **0.196 m** absolute RMSE (no alignment). LiDAR odometry alone on the same flight: 0.975 m, ending 0.44 m off.
+* Relocalisation from random offsets (up to 7 m, 40°): 84 % success over 25 trials (< 0.5 m and < 2 deg), median error 0.373 m.
+
+### Filter consistency
+
+The dashboard's *State estimation → Uncertainty* tab plots each error against the filter's own ±2σ band. MSCKF VIO is roughly consistent. The LiDAR-aided filters are **over-confident**: for VIO+LIO only 39 / 26 / 7 % of position samples fall inside ±2σ (X / Y / Z; about 95 % is expected). ICP errors are correlated in time, but the update treats each scan as independent. Accuracy (ATE) is unaffected; the reported covariance is too small. Inflating the LiDAR noise or modelling the correlation is the obvious next fix.
 
 ## How it works
 

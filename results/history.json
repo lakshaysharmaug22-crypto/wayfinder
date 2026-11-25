@@ -1,0 +1,72 @@
+[
+ {
+  "commit": "e9cc7f4+local",
+  "generated": "2026-11-25 19:46",
+  "odometry": {
+   "IMU only": {
+    "ate_m": 156.3509,
+    "rpe_m": 38.4431,
+    "rot_deg": 12.1654,
+    "drift_pct": 120.5
+   },
+   "VIO (MSCKF)": {
+    "ate_m": 0.58,
+    "rpe_m": 0.4914,
+    "rot_deg": 0.3662,
+    "drift_pct": 0.14
+   },
+   "LIO": {
+    "ate_m": 0.138,
+    "rpe_m": 0.0874,
+    "rot_deg": 0.1791,
+    "drift_pct": 0.032
+   },
+   "VIO + LIO": {
+    "ate_m": 0.0807,
+    "rpe_m": 0.0593,
+    "rot_deg": 0.1073,
+    "drift_pct": 0.026
+   },
+   "VIO, uncalibrated": {
+    "ate_m": 10.187,
+    "rpe_m": 7.5532,
+    "rot_deg": 7.0076,
+    "drift_pct": 6.619
+   },
+   "LIO, uncalibrated": {
+    "ate_m": 3.252,
+    "rpe_m": 1.5863,
+    "rot_deg": 1.4334,
+    "drift_pct": 2.353
+   },
+   "VIO, no time sync": {
+    "ate_m": 0.8378,
+    "rpe_m": 0.8256,
+    "rot_deg": 0.4896,
+    "drift_pct": 0.288
+   },
+   "LIO, no time sync": {
+    "ate_m": 0.1587,
+    "rpe_m": 0.0931,
+    "rot_deg": 0.2684,
+    "drift_pct": 0.025
+   },
+   "VIO, CAD lever arm": {
+    "ate_m": 0.5868,
+    "rpe_m": 0.5014,
+    "rot_deg": 0.376,
+    "drift_pct": 0.136
+   },
+   "LIO, no de-skew": {
+    "ate_m": 0.3763,
+    "rpe_m": 0.2228,
+    "rot_deg": 0.6899,
+    "drift_pct": 0.262
+   }
+  },
+  "localisation": {
+   "map_ate_m": 0.1958,
+   "reloc_rate": 0.84
+  }
+ }
+]

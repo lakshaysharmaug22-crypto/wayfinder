@@ -131,14 +131,39 @@ header h1 b{background:linear-gradient(90deg,var(--ruby2),var(--red) 55%,#ff8a5c
 #cap h4{margin:6px 0 6px;font:700 16px var(--sans)}#cap p{margin:0;color:var(--mute);font-size:13px}#cap p b{color:var(--grn)}
 #cap .row{display:flex;align-items:center;gap:8px;margin-top:14px}#cap .row button{padding:5px 10px}#cap .row .sp{flex:1}
 #prog{height:2px;background:var(--line);margin-top:12px;border-radius:2px;overflow:hidden}#prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--grn),var(--ruby2))}
+
+.tab{background:var(--sunken)}.tab.on{border-color:var(--ruby2);color:#fff;background:rgba(224,17,95,.16)}
+.chip.sel{border-color:var(--cy);color:#fff;background:rgba(34,211,238,.1)}
+.pill{display:inline-block;font:600 10px var(--mono);letter-spacing:.08em;padding:2px 8px;border-radius:999px;border:1px solid;text-transform:uppercase;vertical-align:middle;margin-left:8px}
+.pill.ok{color:#9af0cf;border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.08)}
+.pill.warn{color:#fcd34d;border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.08)}
+.pill.off{color:var(--dim);border-color:var(--line2);background:var(--sunken)}
+.pill.sim{color:#ffb4b4;border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
+.pill.real{color:#9ad8ff;border-color:rgba(34,211,238,.5);background:rgba(34,211,238,.08)}
+.card h3 .pill{margin-left:auto;float:right}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font:12px var(--mono);margin:6px 0 10px}.kv span:nth-child(odd){color:var(--dim)}.kv span:nth-child(even){text-align:right}
+.empty{padding:26px 10px;text-align:center;color:var(--dim);font:12px var(--mono);border:1px dashed var(--line2);border-radius:8px}
+.err{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:95;background:#2a0e14;border:1px solid var(--red);color:#ffd0d0;padding:12px 16px;border-radius:8px;font:12.5px var(--mono);display:none;max-width:90vw}
+.err.on{display:block}.err button{margin-left:10px}
+body.loading .card canvas,body.loading .card table,body.loading .tile{opacity:.12}
+body.loading .card,body.loading .tile{background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.05) 50%,transparent 70%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+@keyframes shim{from{background-position:200% 0}to{background-position:-200% 0}}
+abbr[data-tip]{text-decoration:none;border-bottom:1px dotted var(--dim);cursor:help;position:relative}
+#tip{position:fixed;z-index:120;max-width:290px;background:#05070a;border:1px solid var(--line2);border-radius:6px;padding:8px 10px;font:12px/1.45 var(--sans);color:var(--ink);text-transform:none;letter-spacing:0;pointer-events:none;display:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.simbar{font:600 10.5px var(--mono);letter-spacing:.1em;color:#ffb4b4;border:1px solid rgba(239,68,68,.5);background:rgba(239,68,68,.1);border-radius:4px;padding:3px 8px;white-space:nowrap;cursor:help}
+select{background:var(--sunken);color:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:6px 10px;font:12px var(--mono)}
+.dl{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+td.pos{color:var(--lio)}td.neg{color:var(--red2)}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}#bar,#status,#boot,#pal,#tour,.hero-actions,.controls,.err,#tip{display:none!important}.rv{opacity:1!important;transform:none!important}.card,.tile{break-inside:avoid}}
 </style>
 </head>
-<body>
+<body class="loading">
 <div id="bar"><div class="in"><div class="logo"><i></i>WAYFINDER<span style="color:var(--dim)"> / state estimation</span></div>
-<nav id="nav"></nav><div class="kbd" id="kb">Ctrl K</div></div></div>
+<nav id="nav"></nav><span class="simbar" data-tip="Every number on this page was measured on a simulated vehicle, sensors and terrain, scored against simulated ground truth. No real-world data was used.">SIMULATION DATA</span><div class="kbd" id="kb">Ctrl K</div></div></div>
+<div class="err" id="err"><span id="errmsg"></span><button id="retry">Retry</button></div><div id="tip"></div>
 <div id="boot"><pre id="bootpre"></pre></div>
 <div id="pal"><div class="box"><input id="pin" placeholder="Jump to section, toggle estimator..." autocomplete="off"><ul id="pls"></ul></div></div>
-<div id="status"><span class="ok">replay · measured on simulated flight</span><span id="stn">—</span><span id="stm"></span><span>keys 1–6 · ctrl k · space</span></div>
+<div id="status"><span class="ok">replay · measured on simulated flight</span><span id="stn">—</span><span id="stm"></span><span>keys 1–9 · t tour · ctrl k</span></div>
 <div class="wrap">
 <header>
   <div class="eyebrow">Mission control · v1 · simulation-validated</div>
@@ -152,9 +177,9 @@ header h1 b{background:linear-gradient(90deg,var(--ruby2),var(--red) 55%,#ff8a5c
   <div class="hero-actions">
     <button class="btn ruby" id="tourbtn">▶ Start guided tour <kbd>T</kbd></button>
     <a class="btn green" href="#replay">Open flight replay <kbd>2</kbd></a>
-    <a class="btn red" href="#odometry">Odometry results <kbd>3</kbd></a>
-    <a class="btn" href="#calibration">Calibration <kbd>4</kbd></a>
-    <a class="btn" href="#localisation">Localisation <kbd>5</kbd></a>
+    <a class="btn red" href="#odometry">Odometry results <kbd>5</kbd></a>
+    <a class="btn" href="#calibration">Calibration <kbd>6</kbd></a>
+    <a class="btn" href="#localisation">Localisation <kbd>7</kbd></a>
     <button class="btn" id="palbtn">Command palette <kbd>Ctrl K</kbd></button>
   </div>
   <div class="explore" id="explore"></div>
@@ -176,10 +201,22 @@ underneath follows the playhead.</p>
   <canvas id="errplot" height="150" style="margin-top:8px"></canvas>
 </div>
 
-<h2 id="odometry"><b>03</b> Odometry results <small>ATE after SE(3) alignment, RPE over 5 s windows</small></h2>
+<h2 id="sensors"><b>03</b> Sensor monitor <small>simulated streams · rates, health and synchronisation</small></h2>
+<div class="grid3" id="sensCards"></div>
+<div class="card" style="margin-top:14px"><h3>Timestamps &amp; synchronisation</h3><p class="cap">clock offset between each sensor and the IMU: true (simulator), estimated by calibration, and what it costs if ignored</p><table id="synctab"></table></div>
+
+<h2 id="state"><b>04</b> State estimation <small>estimate vs. ground truth, with filter uncertainty</small></h2>
+<div class="card">
+  <div class="controls" id="stTabs"></div>
+  <div class="controls" id="stEst"></div>
+  <div class="grid3" id="stGrid"></div>
+  <p class="cap" id="stNote" style="margin-top:10px"></p>
+</div>
+
+<h2 id="odometry"><b>05</b> Odometry results <small>ATE after SE(3) alignment, RPE over 5 s windows</small></h2>
 <div class="card"><table id="odotab"></table></div>
 
-<h2 id="calibration"><b>04</b> Calibration &amp; time synchronisation</h2>
+<h2 id="calibration"><b>06</b> Calibration &amp; time synchronisation</h2>
 <p class="sub">Intrinsics from 25 checkerboard views; IMU noise from a 2-hour static log; camera–IMU and
 LiDAR–IMU rotation, time offset and gyro bias from a 60 s excitation sequence (LiDAR scans are motion-compensated
 with the gyro first). The camera lever arm comes from a separate bench sequence against a planar target.</p>
@@ -193,7 +230,7 @@ with the gyro first). The camera lever arm comes from a separate bench sequence 
   <div class="card"><h3>Why sync matters</h3><p class="cap">VIO ATE when the camera time offset is wrong by Δt</p><canvas id="sens" height="330"></canvas></div>
 </div>
 
-<h2 id="localisation"><b>05</b> Map-based localisation <small>LiDAR + IMU against a prior map from a separate survey flight</small></h2>
+<h2 id="localisation"><b>07</b> Map-based localisation <small>LiDAR + IMU against a prior map from a separate survey flight</small></h2>
 <p class="sub">The map is built from an earlier survey flight using its <em>estimated</em> VIO+LIO poses (so it carries drift),
 on an independent sample of the terrain. The live flight is a different trajectory over a scene with changes (trees removed,
 boxes added). It starts from a kidnapped guess (6 m, 35° off), recovered by a coarse (x, y, yaw) search plus ICP.
@@ -204,7 +241,27 @@ Errors are absolute, with no trajectory alignment.</p>
     <h3 style="margin-top:12px">Relocalisation trials</h3><p class="cap">random initial offsets (up to 7 m, 40°): final position error (m) after global search + ICP</p><canvas id="reloc" height="150"></canvas></div>
 </div>
 
-<h2 id="scope"><b>06</b> Honest scope</h2>
+<h2 id="experiments"><b>08</b> Experiments &amp; reproducibility <small>data source, algorithm, settings, history and export</small></h2>
+<div class="grid2">
+ <div class="card"><h3>Experiment</h3><p class="cap">completed runs can be inspected and compared here; running new ones needs the Python code (see README)</p>
+  <div class="cap" style="margin:8px 0 4px">DATA SOURCE</div><div class="controls" id="dsSel"></div>
+  <div class="cap" style="margin:8px 0 4px">ALGORITHM</div><div class="controls" id="algSel"></div>
+  <table id="expTab" style="margin-top:8px"></table>
+  <div class="cap" style="margin:14px 0 4px">COMPARE TWO CONFIGURATIONS</div>
+  <div class="controls"><select id="cmpA"></select><span class="mono">vs</span><select id="cmpB"></select></div>
+  <table id="cmpTab"></table></div>
+ <div class="card"><h3>Reproducible settings</h3><p class="cap">everything needed to regenerate these results</p>
+  <div class="kv" id="cfgKv"></div>
+  <div class="dl"><button id="cfgCopy">Copy config JSON</button><button id="cfgDl">Download config.json</button></div></div>
+</div>
+<div class="card" style="margin-top:14px"><h3>Benchmark by data source</h3><p class="cap">simulated and real-world results are never mixed; empty columns mean the run has not been done</p><table id="srcTab"></table></div>
+<div class="grid2" style="margin-top:14px">
+ <div class="card"><h3>Run history</h3><p class="cap">one entry is added each time <span class="mono">scripts/run_all.py</span> finishes</p><table id="histTab"></table></div>
+ <div class="card"><h3>Export</h3><p class="cap">results as files, for reports and re-analysis</p>
+  <div class="dl"><button class="btn" id="xCsv">Odometry CSV</button><button class="btn" id="xJson">Full results JSON</button><button class="btn ruby" id="xPdf">Print / save PDF</button></div></div>
+</div>
+
+<h2 id="scope"><b>09</b> Honest scope</h2>
 <div class="note"><ul style="margin:0;padding-left:18px">
 <li>All sensors are simulated. No vehicle, sensor rig or real dataset was used: dataset hosts were not reachable from the build environment.</li>
 <li>Camera feature tracking is idealised (perfect IDs, plus pixel noise, dropouts and 2% outliers). There is no image-level detector or KLT here. Camera features ignore occlusion.</li>
@@ -400,7 +457,7 @@ function drawTopdown(D){
 <script>
 (function(){
 const q=(a,b=document)=>[...b.querySelectorAll(a)];
-const SEC=[['pipeline','Pipeline'],['replay','Flight replay'],['odometry','Odometry'],['calibration','Calibration'],['localisation','Localisation'],['scope','Scope']];
+const SEC=[['pipeline','Pipeline'],['replay','Flight replay'],['sensors','Sensors'],['state','State estimation'],['odometry','Odometry'],['calibration','Calibration'],['localisation','Localisation'],['experiments','Experiments'],['scope','Scope']];
 $('nav').innerHTML=SEC.map(([id,t],i)=>`<a href="#${id}" data-id="${id}"><b>${i+1}</b>${t}</a>`).join('');
 // reveal + scrollspy
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in')}}),{threshold:.08});
@@ -426,7 +483,7 @@ addEventListener('keydown',e=>{
   if(pal.classList.contains('on')){if(e.key==='Escape')close();else if(e.key==='ArrowDown'){sel=Math.min(items.length-1,sel+1);render();e.preventDefault()}
     else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1);render();e.preventDefault()}else if(e.key==='Enter'&&items[sel]){items[sel].f();close()}return}
   if(e.target.tagName==='INPUT')return;
-  if(e.key>='1'&&e.key<='6')go(SEC[+e.key-1][0]);
+  if(e.key>='1'&&e.key<='9')go(SEC[+e.key-1][0]);
   if(e.key===' '){e.preventDefault();$('play').click()}
 });
 // count-up on tiles
@@ -456,10 +513,13 @@ function boot(D){
  const M=D.metrics,O=M.odometry,L=M.localisation,K=M.calibration,f=(x,d=2)=>Number(x).toFixed(d);
  const ex=[['01','Pipeline','10 stages · live data flow','pipeline','#22d3ee'],
   ['02','Flight replay','3-D · '+Object.keys(D.runs).length+' estimators','replay','#34d399'],
-  ['03','Odometry',f(O['VIO + LIO'].ate_rmse_m,3)+' m best ATE','odometry','#e0115f'],
-  ['04','Calibration',f(K.camera_imu.td_err_ms,2)+' ms time-sync error','calibration','#10b981'],
-  ['05','Localisation',Math.round(100*L.relocalisation_trials.success_rate)+'% relocalised','localisation','#ef4444'],
-  ['06','Honest scope','simulation only','scope','#ff3d85']];
+  ['03','Sensors','IMU · camera · LiDAR health','sensors','#10b981'],
+  ['04','State estimation','pose · velocity · ±2σ','state','#ff3d85'],
+  ['05','Odometry',f(O['VIO + LIO'].ate_rmse_m,3)+' m best ATE','odometry','#e0115f'],
+  ['06','Calibration',f(K.camera_imu.td_err_ms,2)+' ms time-sync error','calibration','#34d399'],
+  ['07','Localisation',Math.round(100*L.relocalisation_trials.success_rate)+'% relocalised','localisation','#ef4444'],
+  ['08','Experiments','config · history · export','experiments','#fbbf24'],
+  ['09','Honest scope','simulation only','scope','#a78bfa']];
  document.getElementById('explore').innerHTML=ex.map(([n,t,m,id,c])=>`<a class="ex" href="#${id}" style="--c:${c}"><div class="n">${n}</div><div class="t">${t}</div><div class="m">${m}</div></a>`).join('');
  const g=x=>f(x,3);
  const steps=[
@@ -468,11 +528,14 @@ function boot(D){
   ['#scene','Flight replay','Orbit and zoom the 3-D scene. White is ground truth. The uncalibrated VIO run drifts away; the calibrated ones stay on the path.'],
   ['#errplot','Error over time','The trace follows the playhead. <b>IMU alone drifts '+f(O['IMU only'].ate_rmse_m,0)+' m</b>; fusing sensors keeps error under a metre.'],
   ['#odotab','Odometry ablations','Skipping calibration costs <b>'+f(O['VIO, uncalibrated'].ate_rmse_m/O['VIO (MSCKF)'].ate_rmse_m,0)+'x</b> on VIO. Without LiDAR de-skew, LIO error rises from '+g(O['LIO'].ate_rmse_m)+' m to '+g(O['LIO, no de-skew'].ate_rmse_m)+' m.'],
+  ['#sensCards','Sensor monitor','Rates, health and data volume of each simulated sensor, including the identified noise levels. Time offsets are estimated to <b>sub-millisecond</b> accuracy.'],
+  ['#stGrid','State estimation','Position, attitude and velocity against ground truth. The <b>Uncertainty</b> tab checks whether the filter\'s own error bars match the real error.'],
   ['#allan','Calibration','Allan deviation recovers the IMU noise parameters, and rotation-rate correlation finds the camera and LiDAR time offsets to about <b>0.15 ms</b>.'],
   ['#caltab','Estimated vs. truth','Rotations land within 0.14°, camera lever arm within '+f(K.camera_lever_arm.err_cm,2)+' cm. The LiDAR lever arm did <b>not</b> beat CAD, so it is reported as a negative result.'],
   ['#sens','Why sync matters','A camera clock error of 40 ms pushes VIO error up about 4x. Sub-millisecond sync is worth the effort.'],
   ['#topdown','Map-based localisation','The vehicle starts from a wrong guess 6 m and 35° off. A coarse search plus ICP recovers it against a drifting prior map, in a changed scene.'],
   ['#reloc','Relocalisation trials','<b>'+Math.round(100*L.relocalisation_trials.success_rate)+'%</b> of '+L.relocalisation_trials.n+' random kidnapped starts succeed (under 0.5 m and 2°). Failures are shown in red.'],
+  ['#srcTab','Simulation vs. real data','Sources are never mixed. EuRoC and Newer College columns stay empty until those runs exist.'],
   ['.note','Honest scope','Simulation only: idealised feature tracking, ground-truth initial state, no real rig yet. Next step is EuRoC / Newer College bags, then hardware.']];
  let i=0,play=true,tm=null,t0=0;const T=7500,tour=document.getElementById('tour'),spot=document.getElementById('spot'),cap=document.getElementById('cap');
  const $=id=>document.getElementById(id);
@@ -498,6 +561,163 @@ function boot(D){
  window.__tourStart=start;
 }
 fetch('data.json').then(r=>r.json()).then(boot);
+})();
+</script>
+<script>
+(function(){
+const q=(a,b=document)=>[...b.querySelectorAll(a)];
+const GLOSS={
+ 'ATE':'Absolute Trajectory Error: RMS distance between estimated and true positions after the best rigid alignment. Lower is better.',
+ 'RPE':'Relative Pose Error: error in motion over a fixed window (here 5 s). Measures local accuracy, ignoring slow global drift.',
+ 'Rot RMSE':'RMS attitude error in degrees.',
+ 'End drift':'Position error at the end of the flight as a percentage of the distance travelled.',
+ 't_d':'Time offset between a sensor clock and the IMU clock. Uncorrected, it makes measurements look like they happened at the wrong pose.',
+ 'lever arm':'3-D position of a sensor relative to the IMU. Small errors matter most when the vehicle rotates quickly.',
+ 'Allan':'Allan deviation: a plot of IMU noise versus averaging time. Its slopes give the white-noise (N) and random-walk (K) parameters.',
+ 'MSCKF':'Multi-State Constraint Kalman Filter: uses camera feature tracks as constraints on past poses without keeping features in the state.',
+ 'ICP':'Iterative Closest Point: aligns a LiDAR scan to a map by matching nearest points (point-to-plane variant here).',
+ 'de-skew':'Motion compensation: LiDAR points are captured over 0.1 s while the vehicle moves, so each point is moved to a common time.',
+ 'covariance':'The filter\'s own estimate of its uncertainty. A good filter\'s real errors stay inside about ±2σ.',
+ '±2σ':'About 95% of errors should fall inside this band if the filter is consistent.',
+ 'SE(3)':'Rigid-body transform: rotation plus translation in 3-D.',
+ 'IMU':'Inertial Measurement Unit: gyroscope (rotation rate) and accelerometer (specific force).',
+ 'LIO':'LiDAR-Inertial Odometry.','VIO':'Visual-Inertial Odometry.',
+ 'Relocalisation':'Finding the vehicle pose in a prior map from a wrong initial guess.'};
+const tip=$('tip');
+document.addEventListener('mouseover',e=>{const a=e.target.closest('[data-tip]');if(!a){tip.style.display='none';return}
+  tip.textContent=a.dataset.tip;tip.style.display='block';const r=a.getBoundingClientRect();
+  tip.style.left=Math.max(8,Math.min(r.left,innerWidth-300))+'px';tip.style.top=(r.bottom+8>innerHeight-90?r.top-tip.offsetHeight-8:r.bottom+8)+'px'});
+function tipAll(){const keys=Object.keys(GLOSS).sort((a,b)=>b.length-a.length);
+  q('th,.tile .k,.card h3,.kv span:nth-child(odd)').forEach(el=>{if(el.children.length&&!el.querySelector('i,.pill'))return;
+    const node=[...el.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());if(!node||el.querySelector('abbr'))return;
+    const t=node.textContent;const k=keys.find(k=>t.includes(k));if(!k)return;const i=t.indexOf(k);
+    const ab=document.createElement('abbr');ab.dataset.tip=GLOSS[k];ab.textContent=k;
+    const frag=document.createDocumentFragment();frag.append(t.slice(0,i),ab,t.slice(i+k.length));node.replaceWith(frag)});
+  q('.card:not(.nosim) h3').forEach(h=>{if(!h.querySelector('.pill')&&!h.closest('#pal')){const p=document.createElement('span');p.className='pill sim';p.textContent='SIM';p.dataset.tip='Measured on simulated data.';h.appendChild(p)}})}
+function showErr(msg){$('errmsg').textContent=msg;$('err').classList.add('on')}
+$('retry').onclick=()=>location.reload();
+
+const SC={'VIO (MSCKF)':C.vio,'LIO':C.lio,'VIO + LIO':C.fus,'IMU only':C.imu};
+const col=(a,i)=>a.map(r=>r[i]);
+const unwrap=(a,ref)=>{let off=0,p=ref?ref[0]:a[0];return a.map((v,k)=>{const r=ref?ref[k]:v;return v}).map(v=>v)};
+function uw(a){const o=[];let off=0;a.forEach((v,i)=>{if(i){const d=v-a[i-1];if(d>180)off-=360;else if(d<-180)off+=360}o.push(v+off)});return o}
+const wrap=d=>((d+180)%360+360)%360-180;
+
+fetch('data.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(D=>{
+  document.body.classList.remove('loading');
+  const M=D.metrics,O=M.odometry,K=M.calibration,L=M.localisation;
+  // ======================================================= sensors
+  const S=D.sensors;
+  if(!S){$('sensCards').innerHTML='<div class="empty" style="grid-column:1/-1">No sensor log in this data file. Re-run <span class="mono">python scripts/run_all.py</span>.</div>'}
+  else{
+    const ok=(c)=>`<span class="pill ${c[0]}">${c[1]}</span>`;
+    const camOk=Math.abs(K.camera_imu.td_err_ms)<1&&K.camera_imu.rot_err_calibrated_deg<0.5;
+    const lidOk=Math.abs(K.lidar_imu.td_err_ms)<1&&K.lidar_imu.rot_err_calibrated_deg<0.5;
+    const kv=a=>'<div class="kv">'+a.map(([k,v])=>`<span>${k}</span><span>${v}</span>`).join('')+'</div>';
+    $('sensCards').innerHTML=
+     `<div class="card nosim"><h3>IMU ${ok(['ok','noise identified'])}</h3>${kv([['rate',S.imu.hz+' Hz'],['samples',S.imu.n.toLocaleString()],['gyro noise N',S.imu.gyro_nd.toExponential(2)+' rad/s/√Hz'],['accel noise N',S.imu.acc_nd.toExponential(2)+' m/s²/√Hz']])}
+       <p class="cap">gyroscope (rad/s)</p><canvas id="imuG" height="150"></canvas><p class="cap" style="margin-top:8px">accelerometer (m/s²)</p><canvas id="imuA" height="150"></canvas></div>`+
+     `<div class="card nosim"><h3>Camera ${ok(camOk?['ok','calibrated']:['warn','check calibration'])}</h3>${kv([['rate',S.camera.hz+' Hz'],['resolution',S.camera.res[0]+'×'+S.camera.res[1]],['features / frame',f(S.camera.feats_mean,0)],['frames',S.camera.n],['VIO updates',S.camera.updates],['features used',S.camera.features_used]])}
+       <p class="cap">tracked features per frame</p><canvas id="camF" height="150"></canvas></div>`
+     +`<div class="card nosim"><h3>LiDAR ${ok(lidOk?['warn','calibrated · CAD lever arm']:['warn','check calibration'])}</h3>${kv([['rate',S.lidar.hz+' Hz'],['beams',S.lidar.beams],['points / scan',f(S.lidar.pts_raw_mean,0)],['after voxel filter',f(S.lidar.pts_mean,0)],['ICP accepted',S.lidar.updates],['ICP rejected',S.lidar.rejected]])}
+       <p class="cap">points per scan</p><canvas id="lidP" height="150"></canvas></div>`;
+  }
+  const sy=$('synctab');
+  const row=(n,tt,te,imp)=>`<tr><td>${n}</td><td>${f(tt,2)}</td><td>${f(te,2)}</td><td class="${Math.abs(te-tt)<1?'good':'bad'}">${f(Math.abs(te-tt),2)}</td><td>${imp}</td></tr>`;
+  sy.innerHTML='<tr><th>Sensor</th><th>True t_d (ms)</th><th>Estimated (ms)</th><th>Error (ms)</th><th>ATE if ignored</th></tr>'+
+    row('Camera → IMU',K.camera_imu.td_true_ms,K.camera_imu.td_est_ms,f(O['VIO, no time sync'].ate_rmse_m,3)+' m vs '+f(O['VIO (MSCKF)'].ate_rmse_m,3)+' m')+
+    row('LiDAR → IMU',K.lidar_imu.td_true_ms,K.lidar_imu.td_est_ms,f(O['LIO, no time sync'].ate_rmse_m,3)+' m vs '+f(O['LIO'].ate_rmse_m,3)+' m');
+
+  // ======================================================= state estimation
+  const ST=D.state;let tab='pos',est='VIO + LIO';
+  const TABS=[['pos','Position'],['att','Orientation'],['vel','Velocity'],['unc','Uncertainty ±2σ'],['drift','Drift']];
+  $('stTabs').innerHTML=TABS.map(([k,t])=>`<button class="tab ${k===tab?'on':''}" data-k="${k}">${t}</button>`).join('');
+  $('stEst').innerHTML=Object.keys(SC).map(n=>`<span class="chip sel-c ${n===est?'sel':''}" data-n="${n}"><i style="background:${SC[n]}"></i>${n}</span>`).join('');
+  function drawState(){
+    const g=$('stGrid'),note=$('stNote');
+    if(!ST){g.innerHTML='<div class="empty" style="grid-column:1/-1">No state series in this data file. Re-run <span class="mono">python scripts/run_all.py</span>.</div>';note.textContent='';return}
+    $('stEst').style.display=tab==='drift'?'none':'flex';
+    const t=ST.t,E=ST.est[est],G=ST.gt,c=SC[est];
+    const mk=(n,cap,h=170)=>`<div><p class="cap">${cap}</p><canvas id="st${n}" height="${h}"></canvas></div>`;
+    const ax=['X','Y','Z'];
+    if(tab==='drift'){g.style.gridTemplateColumns='1fr';g.innerHTML=mk(0,'position error norm (m), log scale — estimate vs. ground truth',260);
+      chart($('st0'),Object.keys(SC).map(n=>({x:t,y:ST.drift_m[n].map(v=>Math.max(v,1e-3)),c:SC[n]})),{logy:true,xlabel:'t (s)',legend:Object.keys(SC).map(n=>[n,SC[n]])});
+      note.textContent='Dead reckoning (IMU only) drifts without bound; each aiding sensor keeps the error bounded. Ground truth comes from the simulator.';return}
+    g.style.gridTemplateColumns='';
+    if(tab==='unc'&&!E.sig){g.innerHTML='<div class="empty" style="grid-column:1/-1">Dead reckoning has no measurement updates, so its covariance is not shown.</div>';note.textContent='';return}
+    if(tab==='pos'){g.innerHTML=[0,1,2].map(i=>mk(i,ax[i]+' position (m)')).join('');
+      [0,1,2].forEach(i=>chart($('st'+i),[{x:t,y:col(G.p,i),c:C.gt,w:1.4},{x:t,y:col(E.p,i),c:c}],{xlabel:'t (s)',legend:[['ground truth',C.gt],[est,c]]}));
+      note.textContent='Figure-eight flight, 22–27 m above ground. White is ground truth.'}
+    if(tab==='att'){const nm=['Roll','Pitch','Yaw'];g.innerHTML=[0,1,2].map(i=>mk(i,nm[i]+' (°)')).join('');
+      [0,1,2].forEach(i=>{const gt=uw(col(G.rpy,i)),es=uw(col(E.rpy,i));chart($('st'+i),[{x:t,y:gt,c:C.gt,w:1.4},{x:t,y:es,c:c}],{xlabel:'t (s)',legend:[['ground truth',C.gt],[est,c]]})});
+      note.textContent='Euler angles, ZYX convention. Yaw is unwrapped so the plot has no 360° jumps.'}
+    if(tab==='vel'){g.innerHTML=[0,1,2].map(i=>mk(i,'V'+ax[i].toLowerCase()+' (m/s)')).join('');
+      [0,1,2].forEach(i=>chart($('st'+i),[{x:t,y:col(G.v,i),c:C.gt,w:1.4},{x:t,y:col(E.v,i),c:c}],{xlabel:'t (s)',legend:[['ground truth',C.gt],[est,c]]}));
+      note.textContent='World-frame velocity. Acceleration is not an estimated state; the raw accelerometer stream is in the sensor monitor.'}
+    if(tab==='unc'){const nm=['X err (m)','Y err (m)','Z err (m)','Roll err (°)','Pitch err (°)','Yaw err (°)'];
+      g.innerHTML=nm.map((n,i)=>mk(i,n+' with ±2σ band',150)).join('');let inside=[];
+      nm.forEach((n,i)=>{const pos=i<3;const err=pos?col(E.p,i).map((v,k)=>v-G.p[k][i]):col(E.rpy,i-3).map((v,k)=>wrap(v-G.rpy[k][i-3]));
+        const sg=col(E.sig,pos?i:6+(i-3));const up=sg.map(v=>2*v),lo=sg.map(v=>-2*v);
+        inside.push(err.filter((v,k)=>Math.abs(v)<=up[k]).length/err.length);
+        chart($('st'+i),[{x:t,y:up,c:'#ef4444',dash:[4,4],w:1},{x:t,y:lo,c:'#ef4444',dash:[4,4],w:1},{x:t,y:err,c:c}],{xlabel:'t (s)'})});
+      const pc=a=>Math.round(100*a)+'%';
+      note.innerHTML=`Fraction of samples inside the ±2σ band — position X/Y/Z: <b>${pc(inside[0])} / ${pc(inside[1])} / ${pc(inside[2])}</b>, attitude: <b>${pc(inside[3])} / ${pc(inside[4])} / ${pc(inside[5])}</b>. A consistent filter sits near 95%; much lower means over-confident. Attitude σ is the filter's small-angle error, mapped approximately to roll / pitch / yaw.`}
+    tipAll();
+  }
+  $('stTabs').onclick=e=>{const b=e.target.closest('.tab');if(!b)return;tab=b.dataset.k;q('#stTabs .tab').forEach(x=>x.classList.toggle('on',x===b));drawState()};
+  $('stEst').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;est=c.dataset.n;q('#stEst .chip').forEach(x=>x.classList.toggle('sel',x===c));drawState()};
+  // sensor charts
+  function drawSens(){if(!S)return;
+    chart($('imuG'),[0,1,2].map(i=>({x:S.imu.t,y:col(S.imu.gyro,i),c:['#22d3ee','#34d399','#e0115f'][i],w:1})),{xlabel:'t (s)',legend:[['x','#22d3ee'],['y','#34d399'],['z','#e0115f']]});
+    chart($('imuA'),[0,1,2].map(i=>({x:S.imu.t,y:col(S.imu.acc,i),c:['#22d3ee','#34d399','#e0115f'][i],w:1})),{xlabel:'t (s)'});
+    chart($('camF'),[{x:S.camera.feats_t,y:S.camera.feats,c:C.vio}],{xlabel:'t (s)',y0:0});
+    chart($('lidP'),[{x:S.lidar.pts_t,y:S.lidar.pts,c:C.lio}],{xlabel:'t (s)',y0:0})}
+  drawState();drawSens();
+  addEventListener('resize',()=>{drawState();drawSens()});
+
+  // ======================================================= experiments
+  const names=Object.keys(O),cfg=D.config,hist=D.history||[];
+  const ALG={'VIO':'VIO (MSCKF)','LIO':'LIO','Fusion (VIO + LIO)':'VIO + LIO','IMU only':'IMU only'};let alg='VIO + LIO',ds='sim';
+  const DS=[['sim','Simulation',true],['euroc','EuRoC MAV',false],['ncd','Newer College',false]];
+  $('dsSel').innerHTML=DS.map(([k,t,on])=>`<span class="chip ${k===ds?'sel':''} ${on?'':'off'}" data-k="${k}" data-on="${on}">${t}${on?'':' · not run'}</span>`).join('');
+  $('dsSel').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;if(c.dataset.on!=='true'){showErrTemp('EuRoC / Newer College have not been run: the dataset hosts were not reachable from the build environment. See README to run them locally.');return}};
+  function showErrTemp(m){$('errmsg').textContent=m;$('retry').style.display='none';$('err').classList.add('on');setTimeout(()=>{$('err').classList.remove('on');$('retry').style.display=''},4500)}
+  $('algSel').innerHTML=Object.entries(ALG).map(([t,k])=>`<span class="chip ${k===alg?'sel':''}" data-k="${k}"><i style="background:${RUNC[k]||C.imu}"></i>${t}</span>`).join('');
+  function expTab(){const s=O[alg];$('expTab').innerHTML=`<tr><th>Metric</th><th>${alg}</th></tr>`+
+    [['ATE RMSE (m)',f(s.ate_rmse_m,3)],['RPE 5 s (m)',f(s.rpe5s_trans_m,3)],['RPE 5 s (°)',f(s.rpe5s_rot_deg,3)],['Rot RMSE (°)',f(s.rot_rmse_deg,3)],['End drift',f(s.drift_pct,2)+'%'],['Path length (m)',f(s.path_m,0)]].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');tipAll()}
+  $('algSel').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;alg=c.dataset.k;q('#algSel .chip').forEach(x=>x.classList.toggle('sel',x===c));expTab()};
+  expTab();
+  $('cmpA').innerHTML=$('cmpB').innerHTML=names.map(n=>`<option>${n}</option>`).join('');
+  $('cmpA').value='VIO (MSCKF)';$('cmpB').value='VIO + LIO';
+  function cmp(){const a=O[$('cmpA').value],b=O[$('cmpB').value];
+    const R=[['ATE RMSE (m)','ate_rmse_m',3],['RPE 5 s (m)','rpe5s_trans_m',3],['Rot RMSE (°)','rot_rmse_deg',3],['End drift (%)','drift_pct',2]];
+    $('cmpTab').innerHTML='<tr><th>Metric</th><th>A</th><th>B</th><th>B vs. A</th></tr>'+R.map(([n,k,d])=>{const x=a[k],y=b[k],ch=x?100*(y-x)/x:0;
+      return `<tr><td>${n}</td><td>${f(x,d)}</td><td>${f(y,d)}</td><td class="${ch<-0.5?'pos':ch>0.5?'neg':''}">${ch>0?'+':''}${f(ch,1)}%</td></tr>`}).join('')}
+  $('cmpA').onchange=$('cmpB').onchange=cmp;cmp();
+  // config
+  if(cfg){const flat=[['commit',cfg.commit],['generated',cfg.generated],['data source',cfg.dataset],['flight',cfg.flight.duration_s+' s '+cfg.flight.trajectory],
+     ['seeds',Object.entries(cfg.seeds).map(([k,v])=>k+' '+v).join(', ')],['IMU',cfg.sensors.imu_hz+' Hz · N '+cfg.sensors.gyro_nd.toExponential(1)+' / '+cfg.sensors.acc_nd.toExponential(1)],
+     ['camera',cfg.sensors.camera.hz+' Hz · '+cfg.sensors.camera.res.join('×')+' · '+cfg.sensors.camera.px_noise+' px noise'],['LiDAR',cfg.sensors.lidar.hz+' Hz · '+cfg.sensors.lidar.range_noise_m+' m range noise'],
+     ['VIO',cfg.estimator.vio],['LIO',cfg.estimator.lio],['de-skew',cfg.estimator.deskew],['command',cfg.command]];
+    $('cfgKv').innerHTML=flat.map(([k,v])=>`<span>${k}</span><span>${v}</span>`).join('')}
+  else $('cfgKv').outerHTML='<div class="empty">No config in this data file.</div>';
+  const dl=(name,txt,type)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+  $('cfgDl').onclick=()=>cfg&&dl('config.json',JSON.stringify(cfg,null,2),'application/json');
+  $('cfgCopy').onclick=()=>{if(!cfg)return;navigator.clipboard&&navigator.clipboard.writeText(JSON.stringify(cfg,null,2)).then(()=>{$('cfgCopy').textContent='Copied';setTimeout(()=>$('cfgCopy').textContent='Copy config JSON',1500)}).catch(()=>showErrTemp('Clipboard blocked by the browser; use Download instead.'))};
+  // benchmark by source
+  const cell=(v)=>v==null?'<td style="color:var(--dim)">not run</td>':`<td>${v}</td>`;
+  const rows=[['VIO (MSCKF)'],['LIO'],['VIO + LIO']];
+  $('srcTab').innerHTML='<tr><th>ATE RMSE (m)</th><th>Simulation <span class="pill sim">measured</span></th><th>EuRoC MAV <span class="pill off">no data</span></th><th>Newer College <span class="pill off">no data</span></th></tr>'+
+    rows.map(([n])=>`<tr><td>${n}</td><td>${f(O[n].ate_rmse_m,3)}</td>${cell(null)}${cell(null)}</tr>`).join('')+
+    `<tr><td>Relocalisation success</td><td>${Math.round(100*L.relocalisation_trials.success_rate)}%</td>${cell(null)}${cell(null)}</tr>`;
+  // history
+  $('histTab').innerHTML=hist.length?'<tr><th>Date</th><th>Commit</th><th>VIO</th><th>LIO</th><th>VIO+LIO</th><th>Reloc.</th></tr>'+hist.slice().reverse().map(h=>`<tr><td>${h.generated}</td><td>${h.commit}</td><td>${f(h.odometry['VIO (MSCKF)'].ate_m,3)}</td><td>${f(h.odometry['LIO'].ate_m,3)}</td><td>${f(h.odometry['VIO + LIO'].ate_m,3)}</td><td>${Math.round(100*h.localisation.reloc_rate)}%</td></tr>`).join(''):'<tr><td><div class="empty">No runs recorded yet.</div></td></tr>';
+  // export
+  $('xCsv').onclick=()=>dl('wayfinder_odometry.csv','configuration,ate_rmse_m,rpe5s_trans_m,rpe5s_rot_deg,rot_rmse_deg,drift_pct,path_m\n'+names.map(n=>[`"${n}"`,...['ate_rmse_m','rpe5s_trans_m','rpe5s_rot_deg','rot_rmse_deg','drift_pct','path_m'].map(k=>O[n][k])].join(',')).join('\n'),'text/csv');
+  $('xJson').onclick=()=>dl('wayfinder_results.json',JSON.stringify({data_source:'simulation',metrics:M,config:cfg,history:hist},null,2),'application/json');
+  $('xPdf').onclick=()=>print();
+  setTimeout(tipAll,400);
+}).catch(err=>{document.body.classList.remove('loading');showErr('Could not load data.json ('+err.message+'). Open the page through a web server (not file://) and retry.')});
 })();
 </script>
 </body>

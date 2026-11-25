@@ -4,6 +4,7 @@
 """
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -39,6 +40,20 @@ def log(*a):
 
 def r3(x):
     return np.round(np.asarray(x, float), 3).tolist()
+
+
+def rpy_deg(R):
+    """ZYX Euler angles (roll, pitch, yaw) in degrees from rotation matrices (n,3,3)."""
+    R = np.asarray(R)
+    yaw = np.arctan2(R[:, 1, 0], R[:, 0, 0])
+    pitch = np.arcsin(np.clip(-R[:, 2, 0], -1, 1))
+    roll = np.arctan2(R[:, 2, 1], R[:, 2, 2])
+    return np.degrees(np.c_[roll, pitch, yaw])
+
+
+def unwrap_err(a, b):
+    d = a - b
+    return (d + 180.0) % 360.0 - 180.0
 
 
 world = World(seed=7)
@@ -288,6 +303,67 @@ json.dump(M, open(os.path.join(OUT, "metrics.json"), "w"), indent=2, default=flo
 
 sub = lambda a, k=2: a[::k]
 gt_t = runs["LIO"][0]["t"]
+
+# state-estimation series (every 4th logged sample) for the analytics panel
+sub4 = lambda a: a[::4]
+gt_p4, gt_v4, gt_a4 = [sub4(x) for x in ftr.pva(gt_t)]
+gt_rpy4 = rpy_deg(sub4(ftr.R(gt_t)))
+state = dict(t=r3(sub4(gt_t)), gt=dict(p=r3(gt_p4), v=r3(gt_v4), a=r3(gt_a4), rpy=r3(gt_rpy4)), est={})
+for n in ("VIO (MSCKF)", "LIO", "VIO + LIO", "IMU only"):
+    r = runs[n][0]
+    est = dict(p=r3(sub4(r["p"])), v=r3(sub4(r["v"])), rpy=r3(sub4(rpy_deg(r["R"]))))
+    if n != "IMU only":
+        est["sig"] = r3(sub4(r["sig"]))
+    state["est"][n] = est
+vio_r = runs["VIO + LIO"][0]
+state["drift_m"] = {n: r3(sub4(np.linalg.norm(runs[n][0]["p"] - ftr.pva(gt_t)[0], axis=1)))
+                    for n in ("VIO (MSCKF)", "LIO", "VIO + LIO", "IMU only")}
+
+# sensor monitor
+fr, sc = seq["frames"], seq["scans"]
+sensors = dict(
+    imu=dict(hz=ip.rate, n=int(len(seq["imu"]["t"])), gyro_nd=ip.gyro_nd, acc_nd=ip.acc_nd,
+             gyro=r3(seq["imu"]["gyro"][::20][:600]), acc=r3(seq["imu"]["acc"][::20][:600]),
+             t=r3(seq["imu"]["t"][::20][:600])),
+    camera=dict(hz=20, n=len(fr), res=[cam.w, cam.h], feats_mean=float(np.mean([len(f_["uv"]) for f_ in fr])),
+                feats_t=r3([f_["stamp"] for f_ in fr][::4]), feats=[len(f_["uv"]) for f_ in fr][::4],
+                updates=M["odometry"]["VIO (MSCKF)"].get("cam_updates"),
+                features_used=M["odometry"]["VIO (MSCKF)"].get("features_used")),
+    lidar=dict(hz=10, n=len(sc), beams=lid.rings,
+               pts_mean=float(np.mean([len(s_["prep"][0]) for s_ in sc])),
+               pts_raw_mean=float(np.mean([len(s_["pts"]) for s_ in sc])),
+               updates=M["odometry"]["LIO"].get("lidar_updates"), rejected=M["odometry"]["LIO"].get("lidar_rejected"),
+               pts_t=r3([s_["stamp"] for s_ in sc][::2]), pts=[len(s_["pts"]) for s_ in sc][::2]),
+    sync=dict(cam_td_true_ms=C["camera_imu"]["td_true_ms"], cam_td_est_ms=C["camera_imu"]["td_est_ms"],
+              lid_td_true_ms=C["lidar_imu"]["td_true_ms"], lid_td_est_ms=C["lidar_imu"]["td_est_ms"]))
+
+# reproducibility: config + run history
+try:
+    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip() or "uncommitted"
+    if subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT, capture_output=True, text=True).stdout.strip():
+        commit += "+local"
+except Exception:
+    commit = "unknown"
+config = dict(
+    commit=commit, generated=time.strftime("%Y-%m-%d %H:%M"), dataset="simulation (procedural terrain)",
+    seeds=dict(world=7, landmarks=3, flight_sequence=11, calibration=8, intrinsics=5, imu_static=6, survey=21, live=31),
+    flight=dict(duration_s=FD, trajectory="quadrotor figure-eight", altitude_m="22-27"),
+    sensors=dict(imu_hz=ip.rate, gyro_nd=ip.gyro_nd, gyro_rw=ip.gyro_rw, acc_nd=ip.acc_nd, acc_rw=ip.acc_rw,
+                 camera=dict(hz=20, res=[cam.w, cam.h], px_noise=0.5, dropout=0.05, outlier=0.02),
+                 lidar=dict(hz=10, range_noise_m=lid.range_noise, distortion="rolling sweep")),
+    estimator=dict(vio="MSCKF", lio="point-to-plane ICP + local map", lidar_sigma=[0.05, 0.003], deskew="SE(3) constant twist"),
+    command="python scripts/run_all.py")
+hist_path = os.path.join(OUT, "history.json")
+history = json.load(open(hist_path)) if os.path.exists(hist_path) else []
+history.append(dict(commit=commit, generated=config["generated"],
+                    odometry={n: dict(ate_m=round(s["ate_rmse_m"], 4), rpe_m=round(s["rpe5s_trans_m"], 4),
+                                      rot_deg=round(s["rot_rmse_deg"], 4), drift_pct=round(s["drift_pct"], 3))
+                              for n, s in M["odometry"].items()},
+                    localisation=dict(map_ate_m=round(M["localisation"]["map_based"]["ate_rmse_m"], 4),
+                                      reloc_rate=M["localisation"]["relocalisation_trials"]["success_rate"])))
+history = history[-20:]
+json.dump(history, open(hist_path, "w"), indent=1)
+json.dump(config, open(os.path.join(OUT, "config.json"), "w"), indent=1)
 web = dict(
     meta=dict(duration=FD, generated=time.strftime("%Y-%m-%d")),
     metrics=M,
@@ -295,6 +371,7 @@ web = dict(
     gt=r3(sub(ftr.pva(gt_t)[0])),
     t=r3(sub(gt_t)),
     runs={n: dict(p=r3(sub(r["p"])), err=r3(sub(e))) for n, (r, e) in runs.items() if n != "IMU only"},
+    state=state, sensors=sensors, config=config, history=history,
     imu_only_err=r3(sub(runs["IMU only"][1])),
     calib=dict(
         allan=dict(taus=r3(nid["gyro"]["taus"]), gyro=np.round(nid["gyro"]["adev"][0], 8).tolist(),

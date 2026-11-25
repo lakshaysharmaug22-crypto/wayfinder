@@ -1,0 +1,52 @@
+{
+ "commit": "e9cc7f4+local",
+ "generated": "2026-11-25 19:46",
+ "dataset": "simulation (procedural terrain)",
+ "seeds": {
+  "world": 7,
+  "landmarks": 3,
+  "flight_sequence": 11,
+  "calibration": 8,
+  "intrinsics": 5,
+  "imu_static": 6,
+  "survey": 21,
+  "live": 31
+ },
+ "flight": {
+  "duration_s": 100.0,
+  "trajectory": "quadrotor figure-eight",
+  "altitude_m": "22-27"
+ },
+ "sensors": {
+  "imu_hz": 200.0,
+  "gyro_nd": 0.00017,
+  "gyro_rw": 1.9e-05,
+  "acc_nd": 0.002,
+  "acc_rw": 0.003,
+  "camera": {
+   "hz": 20,
+   "res": [
+    640,
+    480
+   ],
+   "px_noise": 0.5,
+   "dropout": 0.05,
+   "outlier": 0.02
+  },
+  "lidar": {
+   "hz": 10,
+   "range_noise_m": 0.02,
+   "distortion": "rolling sweep"
+  }
+ },
+ "estimator": {
+  "vio": "MSCKF",
+  "lio": "point-to-plane ICP + local map",
+  "lidar_sigma": [
+   0.05,
+   0.003
+  ],
+  "deskew": "SE(3) constant twist"
+ },
+ "command": "python scripts/run_all.py"
+}
