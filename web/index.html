@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Wayfinder · Outdoor UAV State Estimation</title>
+<style>
+:root{--bg:#0b0e13;--panel:#121722;--panel2:#171e2b;--line:#243046;--ink:#e6ebf3;--mute:#8c99ad;
+--gt:#e6ebf3;--vio:#4fb3ff;--lio:#3ddc97;--fus:#ffb547;--bad:#ff5d6c;--acc:#b48cff;--imu:#ff8a4c}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Inter,Roboto,sans-serif}
+a{color:var(--vio)}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+header h1{font-size:30px;margin:0 0 4px;letter-spacing:-.02em}
+header p{color:var(--mute);margin:0;max-width:820px}
+.badge{display:inline-block;font-size:12px;padding:3px 10px;border:1px solid #6b5a2a;color:#ffd27a;
+background:#2a2312;border-radius:999px;margin:10px 8px 0 0}
+.badge.b{border-color:#24496b;color:#9fd3ff;background:#0f2133}
+h2{font-size:18px;margin:42px 0 6px}h2 small{color:var(--mute);font-weight:400;font-size:13px;margin-left:8px}
+.sub{color:var(--mute);margin:0 0 14px;max-width:860px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:22px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
+.tile .k{font-size:12px;color:var(--mute)}.tile .v{font-size:26px;font-weight:650;letter-spacing:-.02em;margin-top:2px}
+.tile .d{font-size:12px;color:var(--mute)}
+.tile:after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;background:linear-gradient(90deg,transparent,var(--c,#4fb3ff),transparent);
+animation:sweep 3.2s linear infinite;opacity:.8}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+.card h3{margin:0 0 2px;font-size:14px}.card .cap{color:var(--mute);font-size:12px;margin:0 0 8px}
+canvas{display:block;width:100%}
+#flow{width:100%;height:auto}
+.flow-edge{fill:none;stroke-width:2;stroke-dasharray:6 8;animation:dash 1.2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
+.node rect{fill:var(--panel2);stroke:var(--line)}
+.node text{fill:var(--ink);font-size:12.5px}.node .s{fill:var(--mute);font-size:10.5px}
+.pulse{animation:pulse 2s ease-in-out infinite}@keyframes pulse{50%{opacity:.35}}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+button,.chip{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;user-select:none}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chip.off{opacity:.38}
+input[type=range]{flex:1;min-width:200px;accent-color:var(--vio)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mute);font-weight:500}
+tr.hl td{color:#fff}td.good{color:var(--lio)}td.bad{color:var(--bad)}
+.note{border-left:3px solid #6b5a2a;background:#17140c;padding:12px 14px;border-radius:8px;color:#e9dcc0}
+.note li{margin:3px 0}
+footer{margin-top:50px;color:var(--mute);font-size:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Wayfinder <span style="color:var(--mute);font-weight:400">· outdoor UAV state estimation</span></h1>
+  <p>Camera / LiDAR / IMU calibration (intrinsics, rotation, lever arm, time offset), LiDAR motion compensation,
+     MSCKF visual-inertial odometry, LiDAR-inertial odometry and map-based localisation for a UAV flying over
+     procedurally generated outdoor terrain. Every number below is measured against ground truth.</p>
+  <span class="badge">Simulation-validated · not flown on hardware</span>
+  <span class="badge b">Python · NumPy · SciPy · OpenCV</span>
+</header>
+
+<div class="tiles" id="tiles"></div>
+
+<h2>Pipeline <small>data moving through the stack</small></h2>
+<div class="card"><svg id="flow" viewBox="0 0 1120 330"></svg></div>
+
+<h2>Flight replay <small>100 s figure-eight, 465 m, 22–27 m AGL</small></h2>
+<p class="sub">Drag to orbit, scroll to zoom. Ground truth in white; toggle estimators below. The error trace
+underneath follows the playhead.</p>
+<div class="card">
+  <div class="controls"><button id="play">Pause</button><input type="range" id="scrub" min="0" max="1000" value="0">
+    <span class="mono" id="clock">0.0 s</span></div>
+  <div class="controls" id="chips"></div>
+  <canvas id="scene" height="460"></canvas>
+  <canvas id="errplot" height="150" style="margin-top:8px"></canvas>
+</div>
+
+<h2>Odometry results <small>ATE after SE(3) alignment, RPE over 5 s windows</small></h2>
+<div class="card"><table id="odotab"></table></div>
+
+<h2>Calibration &amp; time synchronisation</h2>
+<p class="sub">Intrinsics from 25 checkerboard views; IMU noise from a 2-hour static log; camera–IMU and
+LiDAR–IMU rotation, time offset and gyro bias from a 60 s excitation sequence (LiDAR scans are motion-compensated
+with the gyro first). The camera lever arm comes from a separate bench sequence against a planar target.</p>
+<div class="grid3">
+  <div class="card"><h3>Allan deviation</h3><p class="cap">gyro x (rad/s) and accel x (m/s²), fitted N and K</p><canvas id="allan" height="230"></canvas></div>
+  <div class="card"><h3>Time-offset search</h3><p class="cap">correlation of rotation-rate magnitude vs. candidate offset</p><canvas id="corr" height="230"></canvas></div>
+  <div class="card"><h3>Convergence vs. data length</h3><p class="cap">extrinsic rotation error (deg) as excitation accumulates</p><canvas id="conv" height="230"></canvas></div>
+</div>
+<div class="grid2" style="margin-top:14px">
+  <div class="card"><h3>Estimated vs. ground truth</h3><table id="caltab"></table></div>
+  <div class="card"><h3>Why sync matters</h3><p class="cap">VIO ATE when the camera time offset is wrong by Δt</p><canvas id="sens" height="330"></canvas></div>
+</div>
+
+<h2>Map-based localisation <small>LiDAR + IMU against a prior map from a separate survey flight</small></h2>
+<p class="sub">The map is built from an earlier survey flight using its <em>estimated</em> VIO+LIO poses (so it carries drift),
+on an independent sample of the terrain. The live flight is a different trajectory over a scene with changes (trees removed,
+boxes added). It starts from a kidnapped guess (6 m, 35° off), recovered by a coarse (x, y, yaw) search plus ICP.
+Errors are absolute, with no trajectory alignment.</p>
+<div class="grid2">
+  <div class="card"><h3>Top-down</h3><p class="cap">prior map · ground truth · map-based estimate · odometry without map</p><canvas id="topdown" height="330"></canvas></div>
+  <div class="card"><h3>Absolute error over time</h3><p class="cap">bounded with the map; odometry alone accumulates drift</p><canvas id="locerr" height="160"></canvas>
+    <h3 style="margin-top:12px">Relocalisation trials</h3><p class="cap">random initial offsets (up to 7 m, 40°): final position error (m) after global search + ICP</p><canvas id="reloc" height="150"></canvas></div>
+</div>
+
+<h2>Honest scope</h2>
+<div class="note"><ul style="margin:0;padding-left:18px">
+<li>All sensors are simulated. No vehicle, sensor rig or real dataset was used: dataset hosts were not reachable from the build environment.</li>
+<li>Camera feature tracking is idealised (perfect IDs, plus pixel noise, dropouts and 2% outliers). There is no image-level detector or KLT here. Camera features ignore occlusion.</li>
+<li>LiDAR motion compensation uses a constant-twist model inside each sweep; the simulator moves the sensor along the true trajectory, so the model error is realistic but not zero.</li>
+<li>The LiDAR lever arm is <b>not</b> adopted: an online extrinsic state in the filter did not beat the CAD value in this simulation (see the calibration table). The camera lever arm uses a bench target at 1.2 m.</li>
+<li>Filter initial pose and velocity come from ground truth, as is usual for simulated odometry benchmarks. Map-based localisation, in contrast, starts from a deliberately wrong guess.</li>
+<li>The next step is running the same code on EuRoC / Newer College bags, then on a real rig.</li>
+</ul></div>
+<footer>Wayfinder · Lakshay · <span id="gen"></span></footer>
+</div>
+
+<script>
+const C={gt:'#e6ebf3',vio:'#4fb3ff',lio:'#3ddc97',fus:'#ffb547',bad:'#ff5d6c',acc:'#b48cff',imu:'#ff8a4c',mute:'#8c99ad',line:'#243046'};
+const RUNC={'VIO (MSCKF)':C.vio,'LIO':C.lio,'VIO + LIO':C.fus,'VIO, uncalibrated':C.bad,'LIO, uncalibrated':'#ff9aa5','VIO, no time sync':C.acc,'LIO, no time sync':'#d7c0ff','VIO, CAD lever arm':'#5fd3e6','LIO, no de-skew':'#c6e86b'};
+const $=id=>document.getElementById(id);
+const f=(x,d=2)=>Number(x).toFixed(d);
+
+function setupCanvas(cv){const r=window.devicePixelRatio||1,w=cv.clientWidth,h=+cv.getAttribute('height');
+  cv.width=w*r;cv.height=h*r;cv.style.height=h+'px';const g=cv.getContext('2d');g.setTransform(r,0,0,r,0,0);return [g,w,h];}
+
+// ---------- generic line chart
+function chart(cv,series,o={}){
+  const [g,W,H]=setupCanvas(cv);const m={l:46,r:12,t:10,b:40};
+  const lx=o.logx,ly=o.logy,tx=v=>lx?Math.log10(v):v,ty=v=>ly?Math.log10(v):v;
+  let xs=[],ys=[];series.forEach(s=>{s.x.forEach(v=>xs.push(tx(v)));s.y.forEach(v=>isFinite(ty(v))&&ys.push(ty(v)))});
+  let x0=o.x0??Math.min(...xs),x1=o.x1??Math.max(...xs),y0=o.y0!=null?ty(o.y0):Math.min(...ys),y1=o.y1!=null?ty(o.y1):Math.max(...ys);
+  if(y1===y0){y1+=1;}const pad=(y1-y0)*.06;if(o.y0==null)y0-=pad;if(o.y1==null)y1+=pad;
+  const X=v=>m.l+(tx(v)-x0)/(x1-x0)*(W-m.l-m.r),Y=v=>H-m.b-(ty(v)-y0)/(y1-y0)*(H-m.t-m.b);
+  g.strokeStyle=C.line;g.fillStyle=C.mute;g.font='11px ui-sans-serif';g.lineWidth=1;
+  const ticks=(a,b,log)=>{if(log){const r=[];for(let e=Math.ceil(a);e<=Math.floor(b);e++)r.push(Math.pow(10,e));return r}
+    const st=Math.pow(10,Math.floor(Math.log10((b-a)/4)));const k=[1,2,5,10].find(k=>(b-a)/(st*k)<=6)*st;const r=[];for(let v=Math.ceil(a/k)*k;v<=b+1e-9;v+=k)r.push(+v.toFixed(10));return r};
+  ticks(y0,y1,ly).forEach(v=>{const y=Y(v);g.beginPath();g.moveTo(m.l,y);g.lineTo(W-m.r,y);g.stroke();g.fillText(ly?'1e'+Math.round(Math.log10(v)):(+v.toPrecision(3)),4,y+4)});
+  ticks(x0,x1,lx).forEach(v=>{const x=X(v);g.fillText(lx?'1e'+Math.round(Math.log10(v)):(+v.toPrecision(3)),x-10,H-m.b+16)});
+  if(o.xlabel){g.fillText(o.xlabel,W-m.r-g.measureText(o.xlabel).width,H-6)}
+  series.forEach(s=>{g.strokeStyle=s.c;g.fillStyle=s.c;g.lineWidth=s.w||1.8;g.setLineDash(s.dash||[]);
+    if(s.dots){s.x.forEach((v,i)=>{g.beginPath();g.arc(X(v),Y(s.y[i]),s.r||3.5,0,7);s.hollow?g.stroke():g.fill()})}
+    else{g.beginPath();let n=s.upto??s.x.length;s.x.slice(0,n).forEach((v,i)=>{const y=Y(s.y[i]);i?g.lineTo(X(v),y):g.moveTo(X(v),y)});g.stroke()}
+    g.setLineDash([])});
+  (o.vlines||[]).forEach(v=>{g.strokeStyle=v.c;g.setLineDash([4,4]);g.beginPath();g.moveTo(X(v.x),m.t);g.lineTo(X(v.x),H-m.b);g.stroke();g.setLineDash([]);
+    if(v.label){g.fillStyle=v.c;g.fillText(v.label,X(v.x)+4,H-m.b-6)}});
+  if(o.legend){let x=m.l+8;o.legend.forEach(([t,c])=>{g.fillStyle=c;g.fillRect(x,m.t+4,10,3);g.fillStyle=C.mute;g.fillText(t,x+14,m.t+9);x+=g.measureText(t).width+30})}
+  return {X,Y,g,W,H,m};
+}
+
+fetch('data.json').then(r=>r.json()).then(D=>{
+  const M=D.metrics;$('gen').textContent='generated '+D.meta.generated;
+  // ---------- tiles
+  const O=M.odometry,L=M.localisation,Cb=M.calibration;
+  const tiles=[
+    ['VIO (MSCKF) ATE',f(O['VIO (MSCKF)'].ate_rmse_m)+' m',f(O['VIO (MSCKF)'].drift_pct)+'% end-point drift',C.vio],
+    ['LIO ATE',f(O['LIO'].ate_rmse_m,3)+' m','de-skewed; '+f(O['LIO, no de-skew'].ate_rmse_m,3)+' m without',C.lio],
+    ['VIO + LIO ATE',f(O['VIO + LIO'].ate_rmse_m,3)+' m',f(O['VIO + LIO'].drift_pct,3)+'% drift',C.fus],
+    ['Map-based loc. error',f(L.map_based.ate_rmse_m)+' m','absolute RMSE, no alignment',C.fus],
+    ['Cam–IMU time offset',f(Cb.camera_imu.td_err_ms,2)+' ms','error, true '+f(Cb.camera_imu.td_true_ms,1)+' ms',C.acc],
+    ['LiDAR–IMU time offset',f(Cb.lidar_imu.td_err_ms,2)+' ms','without de-skew: '+f(Cb.lidar_imu.no_deskew.td_err_ms,0)+' ms off',C.acc],
+    ['Camera lever arm',f(Cb.camera_lever_arm.err_cm,1)+' cm','error, CAD was '+f(Cb.camera_lever_arm.cad_err_cm,1)+' cm',C.vio],
+    ['Relocalisation',Math.round(100*L.relocalisation_trials.success_rate)+'%',L.relocalisation_trials.n+' trials, '+L.relocalisation_trials.criterion,C.lio]];
+  $('tiles').innerHTML=tiles.map(([k,v,d,c])=>`<div class="tile" style="--c:${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+
+  drawFlow();
+  // ---------- odometry table
+  const rows=Object.entries(O);
+  $('odotab').innerHTML='<tr><th>Configuration</th><th>ATE RMSE (m)</th><th>RPE 5 s (m)</th><th>RPE 5 s (°)</th><th>Rot RMSE (°)</th><th>End drift</th></tr>'+
+   rows.map(([n,s])=>{const bad=s.ate_rmse_m>5;return `<tr class="${n.includes('+')?'hl':''}"><td>${n}</td><td class="${bad?'bad':(s.ate_rmse_m<0.5?'good':'')}">${f(s.ate_rmse_m,3)}</td><td>${f(s.rpe5s_trans_m,3)}</td><td>${f(s.rpe5s_rot_deg,3)}</td><td>${f(s.rot_rmse_deg,3)}</td><td>${f(s.drift_pct,2)}%</td></tr>`}).join('');
+
+  // ---------- calibration table
+  const I=Cb.intrinsics,N=Cb.imu_noise;
+  const cr=(a,b,c,d)=>`<tr><td>${a}</td><td>${b}</td><td>${c}</td><td>${d}</td></tr>`;
+  $('caltab').innerHTML='<tr><th>Parameter</th><th>Truth</th><th>Estimate</th><th>Nominal / note</th></tr>'+
+    cr('fx, fy (px)',f(I.true.fx,1)+', '+f(I.true.fy,1),f(I.est.fx,1)+', '+f(I.est.fy,1),'reproj '+f(I.reproj_rms_px,2)+' px')+
+    cr('cx, cy (px)',f(I.true.cx,1)+', '+f(I.true.cy,1),f(I.est.cx,1)+', '+f(I.est.cy,1),'320, 240')+
+    cr('k1, k2',I.true.dist.slice(0,2).join(', '),I.est.dist.slice(0,2).map(v=>f(v,3)).join(', '),'0, 0')+
+    cr('gyro N (rad/s/√Hz)',N.gyro.N_true.toExponential(2),N.gyro.N_est.toExponential(2),'Allan @ τ=1 s')+
+    cr('gyro K (rad/s²/√Hz)',N.gyro.K_true.toExponential(2),N.gyro.K_est.toExponential(2),'rate random walk')+
+    cr('accel N (m/s²/√Hz)',N.acc.N_true.toExponential(2),N.acc.N_est.toExponential(2),'')+
+    cr('R cam→IMU error','0°',f(Cb.camera_imu.rot_err_calibrated_deg,3)+'°',f(Cb.camera_imu.rot_err_nominal_deg,2)+'° (CAD)')+
+    cr('R LiDAR→IMU error','0°',f(Cb.lidar_imu.rot_err_calibrated_deg,3)+'°',f(Cb.lidar_imu.rot_err_nominal_deg,2)+'° (CAD)')+
+    cr('t_d camera (ms)',f(Cb.camera_imu.td_true_ms,2),f(Cb.camera_imu.td_est_ms,2),'0 (unsynced)')+
+    cr('t_d LiDAR (ms)',f(Cb.lidar_imu.td_true_ms,2),f(Cb.lidar_imu.td_est_ms,2),'w/o de-skew: '+f(Cb.lidar_imu.no_deskew.td_est_ms,1))+
+    cr('Camera lever arm error',f(0,1)+' cm',f(Cb.camera_lever_arm.err_cm,2)+' cm','CAD '+f(Cb.camera_lever_arm.cad_err_cm,2)+' cm · bench target')+
+    cr('LiDAR lever arm error',f(0,1)+' cm',f(Cb.lidar_lever_arm.err_cm,2)+' cm','CAD '+f(Cb.lidar_lever_arm.cad_err_cm,2)+' cm · not adopted');
+
+  // ---------- calibration charts
+  const A=D.calib.allan,tau=A.taus;
+  const fitline=(taus,Nv,Kv)=>taus.map(t=>Math.sqrt(Nv*Nv/t+Kv*Kv*t/3));
+  chart($('allan'),[{x:tau,y:A.gyro,c:C.vio},{x:tau,y:fitline(tau,N.gyro.N_est,N.gyro.K_est),c:C.vio,dash:[4,4],w:1},
+    {x:A.acc_taus,y:A.acc,c:C.lio},{x:A.acc_taus,y:fitline(A.acc_taus,N.acc.N_est,N.acc.K_est),c:C.lio,dash:[4,4],w:1}],
+    {logx:true,logy:true,xlabel:'τ (s)',legend:[['gyro',C.vio],['accel',C.lio]]});
+  const cc=D.calib.corr;
+  chart($('corr'),[{x:cc.camera.grid,y:cc.camera.corr,c:C.vio},{x:cc.lidar.grid,y:cc.lidar.corr,c:C.lio}],
+    {xlabel:'offset (ms)',vlines:[{x:Cb.camera_imu.td_true_ms,c:C.vio,label:'cam'},{x:Cb.lidar_imu.td_true_ms,c:C.lio,label:'lidar'}],legend:[['camera',C.vio],['LiDAR',C.lio]]});
+  const cv=D.calib.convergence;
+  chart($('conv'),[{x:cv.camera.map(d=>d.secs),y:cv.camera.map(d=>d.rot_err_deg),c:C.vio},{x:cv.camera.map(d=>d.secs),y:cv.camera.map(d=>d.rot_err_deg),c:C.vio,dots:1},
+    {x:cv.lidar.map(d=>d.secs),y:cv.lidar.map(d=>Math.max(d.rot_err_deg,1e-3)),c:C.lio},{x:cv.lidar.map(d=>d.secs),y:cv.lidar.map(d=>Math.max(d.rot_err_deg,1e-3)),c:C.lio,dots:1}],
+    {logy:true,xlabel:'seconds of data',legend:[['camera',C.vio],['LiDAR',C.lio]]});
+  const se=D.calib.sensitivity;
+  chart($('sens'),[{x:se.map(d=>d.td_err_ms),y:se.map(d=>d.ate_m),c:C.acc},{x:se.map(d=>d.td_err_ms),y:se.map(d=>d.ate_m),c:C.acc,dots:1}],{y0:0,xlabel:'Δt (ms)'});
+
+  // ---------- localisation
+  drawTopdown(D);
+  const lt=D.loc.t.map(t=>t-D.loc.t[0]);
+  chart($('locerr'),[{x:lt,y:D.loc.odo_err,c:C.bad},{x:lt,y:D.loc.err,c:C.fus}],{y0:0,xlabel:'s',legend:[['map-based',C.fus],['odometry only',C.bad]]});
+  const tr=L.relocalisation_trials.trials;
+  chart($('reloc'),[{x:tr.filter(t=>t.success).map(t=>t.off_m),y:tr.filter(t=>t.success).map(t=>t.err_m),c:C.lio,dots:1},
+    {x:tr.filter(t=>!t.success).map(t=>t.off_m),y:tr.filter(t=>!t.success).map(t=>t.err_m),c:C.bad,dots:1,hollow:1}],
+    {y0:0,xlabel:'initial offset (m)',legend:[['success',C.lio],['fail',C.bad]]});
+
+  replay(D);
+});
+
+// ---------- animated flow diagram
+function drawFlow(){
+  const s=$('flow');const N=[
+   ['IMU','200 Hz gyro + accel',20,30],['Camera','20 Hz · 640×480',20,135],['LiDAR','10 Hz · 32 beams',20,240],
+   ['Calibration','intrinsics · Allan · R, t, t_d',250,30],['Time sync','t_d via rate correlation',250,135],['Prior map','survey flight · voxel+normals',250,240],
+   ['ESKF core','IMU propagation · 15 + 6n states',500,30],['MSCKF update','clones · null-space proj.',500,135],['ICP update','de-skew · point-to-plane',500,240],
+   ['Pose @ 200 Hz','p, v, R, b_g, b_a',780,85],['Evaluation','ATE · RPE · vs. ground truth',780,195]];
+  const w=190,h=52;const ctr=i=>[N[i][2]+w/2,N[i][3]+h/2];
+  const E=[[0,3,'#ff8a4c'],[1,3,'#4fb3ff'],[2,3,'#3ddc97'],[0,4,'#ff8a4c'],[1,4,'#4fb3ff'],[2,4,'#3ddc97'],[3,6,'#b48cff'],[4,6,'#b48cff'],
+    [0,6,'#ff8a4c'],[1,7,'#4fb3ff'],[2,8,'#3ddc97'],[5,8,'#ffb547'],[7,6,'#4fb3ff'],[8,6,'#3ddc97'],[6,9,'#e6ebf3'],[9,10,'#e6ebf3']];
+  let html='';
+  E.forEach(([a,b,c],k)=>{const [x1,y1]=[N[a][2]+w,N[a][3]+h/2],[x2,y2]=[N[b][2],N[b][3]+h/2];
+    let d;if(b===6&&(a===7||a===8)){const xa=N[a][2]+w/2,ya=N[a][3],xb=N[6][2]+w/2+(a===7?-30:30),yb=N[6][3]+h;d=`M${xa+(a===7?-30:30)},${ya} L${xb},${yb}`}
+    else{const mx=(x1+x2)/2;d=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
+    html+=`<path class="flow-edge" d="${d}" stroke="${c}" style="animation-duration:${1+(k%4)*.25}s;opacity:.85"/>`;
+    html+=`<circle r="3.2" fill="${c}"><animateMotion dur="${2.2+(k%5)*.4}s" repeatCount="indefinite" path="${d}"/></circle>`});
+  N.forEach(([t,sub,x,y],i)=>{html+=`<g class="node"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/>`+
+    `<circle class="pulse" cx="${x+14}" cy="${y+18}" r="4" fill="${['#ff8a4c','#4fb3ff','#3ddc97','#b48cff','#b48cff','#ffb547','#e6ebf3','#4fb3ff','#3ddc97','#e6ebf3','#e6ebf3'][i]}" style="animation-delay:${i*.18}s"/>`+
+    `<text x="${x+26}" y="${y+22}" font-weight="600">${t}</text><text class="s" x="${x+14}" y="${y+40}">${sub}</text></g>`});
+  s.innerHTML=html;
+}
+
+// ---------- 3-D replay
+function replay(D){
+  const cv=$('scene');let [g,W,H]=setupCanvas(cv);
+  const P=D.world,gt=D.gt,n=gt.length,ts=D.t;let cx=0,cy=0,cz=0;gt.forEach(p=>{cx+=p[0];cy+=p[1];cz+=p[2]});cx/=n;cy/=n;cz=10;
+  let yaw=-.7,pitch=.62,zoom=4.2,playing=true,k=0;
+  const runs=Object.keys(D.runs);const on={'VIO (MSCKF)':1,'LIO':1,'VIO + LIO':1,'VIO, uncalibrated':1};
+  $('chips').innerHTML=runs.map(r=>`<span class="chip ${on[r]?'':'off'}" data-r="${r}"><i style="background:${RUNC[r]}"></i>${r}</span>`).join('');
+  $('chips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;const r=c.dataset.r;on[r]=!on[r];c.classList.toggle('off')};
+  const zs=P.map(p=>p[2]),zmin=Math.min(...zs),zmax=Math.max(...zs);
+  function proj(p){const x=p[0]-cx,y=p[1]-cy,z=p[2]-cz;const cyw=Math.cos(yaw),syw=Math.sin(yaw);
+    const x1=cyw*x-syw*y,y1=syw*x+cyw*y;const cp=Math.cos(pitch),sp=Math.sin(pitch);const y2=y1*cp-z*sp,z2=y1*sp+z*cp;
+    const d=180+y2;const s=zoom*90/Math.max(d,20)*1.9;return [W/2+x1*s,H/2-z2*s*1.0+40,d]}
+  let drag=null;cv.onmousedown=e=>drag=[e.clientX,e.clientY];window.onmouseup=()=>drag=null;
+  window.onmousemove=e=>{if(!drag)return;yaw+=(e.clientX-drag[0])*.006;pitch=Math.max(.05,Math.min(1.5,pitch+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY]};
+  cv.ontouchstart=e=>{drag=[e.touches[0].clientX,e.touches[0].clientY]};cv.ontouchmove=e=>{if(!drag)return;e.preventDefault();yaw+=(e.touches[0].clientX-drag[0])*.006;drag=[e.touches[0].clientX,e.touches[0].clientY]};
+  cv.onwheel=e=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08};
+  $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pause':'Play'};
+  $('scrub').max=n-1;$('scrub').oninput=e=>{k=+e.target.value};
+  window.addEventListener('resize',()=>{[g,W,H]=setupCanvas(cv)});
+  const ep=$('errplot');
+  function frame(){
+    g.clearRect(0,0,W,H);
+    const pts=P.map(p=>[proj(p),p[2]]).sort((a,b)=>b[0][2]-a[0][2]);
+    pts.forEach(([q,z])=>{const t=(z-zmin)/(zmax-zmin);g.fillStyle=`hsla(${150-110*t},45%,${30+25*t}%,.75)`;g.fillRect(q[0],q[1],1.6,1.6)});
+    const line=(arr,c,w,upto)=>{g.strokeStyle=c;g.lineWidth=w;g.beginPath();for(let i=0;i<=upto;i++){const q=proj(arr[i]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])}g.stroke()};
+    g.globalAlpha=.25;line(gt,C.gt,1,n-1);g.globalAlpha=1;
+    line(gt,C.gt,2.2,k);
+    runs.forEach(r=>{if(on[r])line(D.runs[r].p,RUNC[r],1.6,k)});
+    // lidar fan at the drone
+    const q=proj(gt[k]);
+    for(let i=0;i<14;i++){const a=(Date.now()/300+i*.45)%(2*Math.PI);g.strokeStyle='rgba(61,220,151,.18)';g.beginPath();g.moveTo(q[0],q[1]);
+      const tgt=[gt[k][0]+28*Math.cos(a),gt[k][1]+28*Math.sin(a),gt[k][2]-22];const qt=proj(tgt);g.lineTo(qt[0],qt[1]);g.stroke()}
+    g.fillStyle='#fff';g.beginPath();g.arc(q[0],q[1],5,0,7);g.fill();g.strokeStyle='#fff';g.globalAlpha=.4;g.beginPath();g.arc(q[0],q[1],9+4*Math.sin(Date.now()/200),0,7);g.stroke();g.globalAlpha=1;
+    $('clock').textContent=f(ts[k]-ts[0],1)+' s';$('scrub').value=k;
+    const ser=runs.filter(r=>on[r]).map(r=>({x:ts,y:D.runs[r].err,c:RUNC[r],upto:k+1}));
+    const ymax=Math.max(1,...runs.filter(r=>on[r]).map(r=>Math.max(...D.runs[r].err)));
+    const cc=chart(ep,ser.length?ser:[{x:ts,y:ts.map(()=>0),c:'#0000'}],{y0:0,y1:ymax*1.05,xlabel:'error (m) vs time (s)'});
+    cc.g.strokeStyle='#fff';cc.g.globalAlpha=.5;cc.g.beginPath();cc.g.moveTo(cc.X(ts[k]),cc.m.t);cc.g.lineTo(cc.X(ts[k]),cc.H-cc.m.b);cc.g.stroke();cc.g.globalAlpha=1;
+    if(playing)k=(k+1)%n;
+    setTimeout(()=>requestAnimationFrame(frame),40);
+  }
+  frame();
+}
+
+function drawTopdown(D){
+  const [g,W,H]=setupCanvas($('topdown'));const P=D.loc.map;
+  const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]);const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const s=Math.min(W/(x1-x0),H/(y1-y0));const X=x=>W/2+(x-(x0+x1)/2)*s,Y=y=>H/2-(y-(y0+y1)/2)*s;
+  const zs=P.map(p=>p[2]),zmin=Math.min(...zs),zmax=Math.max(...zs);
+  P.forEach(p=>{const t=(p[2]-zmin)/(zmax-zmin);g.fillStyle=`hsla(${150-110*t},35%,${22+28*t}%,.8)`;g.fillRect(X(p[0]),Y(p[1]),1.7,1.7)});
+  let k=0;const L=D.loc,n=L.gt.length;
+  const base=g.getImageData(0,0,g.canvas.width,g.canvas.height);
+  function step(){g.putImageData(base,0,0);
+    const ln=(a,c,w)=>{g.strokeStyle=c;g.lineWidth=w;g.beginPath();a.slice(0,k+1).forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.stroke()};
+    ln(L.odo_p,C.bad,1.4);ln(L.gt,C.gt,2.4);ln(L.p,C.fus,1.6);
+    const q=L.p[k];g.fillStyle=C.fus;g.beginPath();g.arc(X(q[0]),Y(q[1]),4,0,7);g.fill();
+    k=(k+1)%n;setTimeout(step,45)}
+  step();
+}
+</script>
+</body>
+</html>
