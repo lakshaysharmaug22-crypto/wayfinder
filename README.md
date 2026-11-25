@@ -2,6 +2,14 @@
 
 **Live dashboard:** https://wayfinder-sepia-one.vercel.app
 
+[![Live demo](https://img.shields.io/badge/live%20demo-wayfinder--sepia--one.vercel.app-ff3b5c?style=for-the-badge)](https://wayfinder-sepia-one.vercel.app)
+
+![Wayfinder dashboard walkthrough](docs/demo.gif)
+
+## System flow
+
+![Wayfinder system flow](docs/flow.svg)
+
 State estimation and sensor calibration for a UAV flying outdoors with an IMU, a camera and a spinning LiDAR.
 Written from scratch in Python (NumPy, SciPy, OpenCV): calibration and time synchronisation, LiDAR motion
 compensation, MSCKF visual-inertial odometry, LiDAR-inertial odometry and map-based localisation, all scored against ground truth.
