@@ -7,7 +7,7 @@
 <title>Wayfinder · Outdoor UAV State Estimation</title>
 <style>
 :root{--bg:#07090d;--sunken:#0c0e13;--panel:#0f1218;--panel2:#141824;--line:#1c2030;--line2:#2b3040;--ink:#e8ecf4;--mute:#8a93a6;--dim:#5b6478;
---cy:#22d3ee;--red:#ef4444;--red2:#ff5d6c;
+--cy:#22d3ee;--red:#ef4444;--red2:#ff5d6c;--ruby:#e0115f;--ruby2:#ff3d85;--grn:#34d399;--grn2:#10b981;
 --gt:#e8ecf4;--vio:#22d3ee;--lio:#34d399;--fus:#fbbf24;--bad:#ef4444;--acc:#a78bfa;--imu:#fb923c;
 --mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 --sans:Inter,ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -102,6 +102,35 @@ font:10.5px var(--mono);color:var(--dim);display:flex;align-items:center;gap:18p
 #pal li{padding:8px 10px;border-radius:6px;font:12.5px var(--mono);color:var(--mute);cursor:pointer;display:flex;justify-content:space-between}
 #pal li.sel{background:rgba(34,211,238,.1);color:var(--ink)}#pal li span{color:var(--dim)}
 #help{position:fixed;right:16px;bottom:38px;z-index:30;font:11px var(--mono);color:var(--dim)}
+
+.tile{background:linear-gradient(160deg,color-mix(in srgb,var(--c,#22d3ee) 11%,var(--panel)),var(--panel) 62%);border-color:color-mix(in srgb,var(--c,#22d3ee) 28%,var(--line))}
+.tile .v{color:var(--c,var(--ink));text-shadow:0 0 22px color-mix(in srgb,var(--c,#22d3ee) 45%,transparent)}
+.tile:before{border-color:var(--c,var(--cy))}
+body:before{background:radial-gradient(900px 460px at 88% -80px,rgba(224,17,95,.22),transparent 70%),radial-gradient(700px 420px at 0 40px,rgba(16,185,129,.12),transparent 70%),radial-gradient(500px 300px at 50% 0,rgba(239,68,68,.08),transparent 70%)}
+header h1 b{background:linear-gradient(90deg,var(--ruby2),var(--red) 55%,#ff8a5c);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
+.eyebrow{color:var(--ruby2)}
+.badge.g{border-color:rgba(52,211,153,.45);color:#9af0cf;background:rgba(52,211,153,.08)}.badge.g:before{background:var(--grn)}
+.badge.r{border-color:rgba(224,17,95,.5);color:#ffb0cd;background:rgba(224,17,95,.1)}.badge.r:before{background:var(--ruby)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:10px 16px;border-radius:6px;border:1px solid var(--line2);background:var(--sunken);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--cy)}
+.btn.ruby{background:linear-gradient(135deg,var(--ruby),#b30d4b);border-color:var(--ruby2);box-shadow:0 0 24px rgba(224,17,95,.35)}
+.btn.ruby:hover{box-shadow:0 0 34px rgba(224,17,95,.55)}
+.btn.green{border-color:rgba(52,211,153,.5);color:#9af0cf;background:rgba(52,211,153,.07)}.btn.green:hover{border-color:var(--grn)}
+.btn.red{border-color:rgba(239,68,68,.5);color:#ffb4b4;background:rgba(239,68,68,.07)}.btn.red:hover{border-color:var(--red)}
+.btn kbd{font:500 10px var(--mono);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:1px 5px;opacity:.8}
+.explore{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:22px}
+.ex{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--c);border-radius:8px;padding:12px 14px;transition:transform .2s,border-color .2s,background .2s}
+.ex:hover{transform:translateY(-3px);border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,var(--panel))}
+.ex .n{font:600 10.5px var(--mono);letter-spacing:.14em;color:var(--c)}.ex .t{font:600 14px var(--sans);margin:4px 0 2px}.ex .m{font:12px var(--mono);color:var(--mute)}
+/* tour */
+#tour{position:fixed;inset:0;z-index:80;display:none}#tour.on{display:block}
+#spot{position:fixed;border-radius:10px;box-shadow:0 0 0 9999px rgba(4,5,8,.78),0 0 0 2px var(--ruby2),0 0 34px rgba(224,17,95,.55);transition:all .55s cubic-bezier(.4,.1,.2,1);pointer-events:none}
+#cap{position:fixed;width:min(420px,92vw);background:var(--panel);border:1px solid var(--line2);border-top:2px solid var(--ruby);border-radius:10px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.65);transition:all .55s cubic-bezier(.4,.1,.2,1)}
+#cap .st{font:600 10.5px var(--mono);letter-spacing:.16em;color:var(--ruby2);text-transform:uppercase}
+#cap h4{margin:6px 0 6px;font:700 16px var(--sans)}#cap p{margin:0;color:var(--mute);font-size:13px}#cap p b{color:var(--grn)}
+#cap .row{display:flex;align-items:center;gap:8px;margin-top:14px}#cap .row button{padding:5px 10px}#cap .row .sp{flex:1}
+#prog{height:2px;background:var(--line);margin-top:12px;border-radius:2px;overflow:hidden}#prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--grn),var(--ruby2))}
 </style>
 </head>
 <body>
@@ -113,12 +142,22 @@ font:10.5px var(--mono);color:var(--dim);display:flex;align-items:center;gap:18p
 <div class="wrap">
 <header>
   <div class="eyebrow">Mission control · v1 · simulation-validated</div>
-  <h1>Wayfinder <em>· outdoor UAV state estimation</em></h1>
+  <h1><b>Wayfinder</b> <em>· outdoor UAV state estimation</em></h1>
   <p>Camera / LiDAR / IMU calibration (intrinsics, rotation, lever arm, time offset), LiDAR motion compensation,
      MSCKF visual-inertial odometry, LiDAR-inertial odometry and map-based localisation for a UAV flying over
      procedurally generated outdoor terrain. Every number below is measured against ground truth.</p>
   <span class="badge">Simulation-validated · not flown on hardware</span>
+  <span class="badge g">Ground-truth scored</span><span class="badge r">0.081 m fused ATE</span>
   <span class="badge b">Python · NumPy · SciPy · OpenCV</span>
+  <div class="hero-actions">
+    <button class="btn ruby" id="tourbtn">▶ Start guided tour <kbd>T</kbd></button>
+    <a class="btn green" href="#replay">Open flight replay <kbd>2</kbd></a>
+    <a class="btn red" href="#odometry">Odometry results <kbd>3</kbd></a>
+    <a class="btn" href="#calibration">Calibration <kbd>4</kbd></a>
+    <a class="btn" href="#localisation">Localisation <kbd>5</kbd></a>
+    <button class="btn" id="palbtn">Command palette <kbd>Ctrl K</kbd></button>
+  </div>
+  <div class="explore" id="explore"></div>
 </header>
 
 <div class="tiles" id="tiles"></div>
@@ -215,14 +254,14 @@ fetch('data.json').then(r=>r.json()).then(D=>{
   // ---------- tiles
   const O=M.odometry,L=M.localisation,Cb=M.calibration;
   const tiles=[
-    ['VIO (MSCKF) ATE',f(O['VIO (MSCKF)'].ate_rmse_m)+' m',f(O['VIO (MSCKF)'].drift_pct)+'% end-point drift',C.vio],
-    ['LIO ATE',f(O['LIO'].ate_rmse_m,3)+' m','de-skewed; '+f(O['LIO, no de-skew'].ate_rmse_m,3)+' m without',C.lio],
-    ['VIO + LIO ATE',f(O['VIO + LIO'].ate_rmse_m,3)+' m',f(O['VIO + LIO'].drift_pct,3)+'% drift',C.fus],
-    ['Map-based loc. error',f(L.map_based.ate_rmse_m)+' m','absolute RMSE, no alignment',C.fus],
-    ['Cam–IMU time offset',f(Cb.camera_imu.td_err_ms,2)+' ms','error, true '+f(Cb.camera_imu.td_true_ms,1)+' ms',C.acc],
-    ['LiDAR–IMU time offset',f(Cb.lidar_imu.td_err_ms,2)+' ms','without de-skew: '+f(Cb.lidar_imu.no_deskew.td_err_ms,0)+' ms off',C.acc],
-    ['Camera lever arm',f(Cb.camera_lever_arm.err_cm,1)+' cm','error, CAD was '+f(Cb.camera_lever_arm.cad_err_cm,1)+' cm',C.vio],
-    ['Relocalisation',Math.round(100*L.relocalisation_trials.success_rate)+'%',L.relocalisation_trials.n+' trials, '+L.relocalisation_trials.criterion,C.lio]];
+    ['VIO (MSCKF) ATE',f(O['VIO (MSCKF)'].ate_rmse_m)+' m',f(O['VIO (MSCKF)'].drift_pct)+'% end-point drift','#e0115f'],
+    ['LIO ATE',f(O['LIO'].ate_rmse_m,3)+' m','de-skewed; '+f(O['LIO, no de-skew'].ate_rmse_m,3)+' m without','#34d399'],
+    ['VIO + LIO ATE',f(O['VIO + LIO'].ate_rmse_m,3)+' m',f(O['VIO + LIO'].drift_pct,3)+'% drift','#10b981'],
+    ['Map-based loc. error',f(L.map_based.ate_rmse_m)+' m','absolute RMSE, no alignment','#ef4444'],
+    ['Cam–IMU time offset',f(Cb.camera_imu.td_err_ms,2)+' ms','error, true '+f(Cb.camera_imu.td_true_ms,1)+' ms','#ff3d85'],
+    ['LiDAR–IMU time offset',f(Cb.lidar_imu.td_err_ms,2)+' ms','without de-skew: '+f(Cb.lidar_imu.no_deskew.td_err_ms,0)+' ms off','#ef4444'],
+    ['Camera lever arm',f(Cb.camera_lever_arm.err_cm,1)+' cm','error, CAD was '+f(Cb.camera_lever_arm.cad_err_cm,1)+' cm','#34d399'],
+    ['Relocalisation',Math.round(100*L.relocalisation_trials.success_rate)+'%',L.relocalisation_trials.n+' trials, '+L.relocalisation_trials.criterion,'#10b981']];
   $('tiles').innerHTML=tiles.map(([k,v,d,c])=>`<div class="tile" style="--c:${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
 
   drawFlow();
@@ -374,7 +413,7 @@ const t0=Date.now();setInterval(()=>{$('stm').textContent='uptime '+((Date.now()
 // palette
 const pal=$('pal'),pin=$('pin'),pls=$('pls');let items=[],sel=0;
 const go=id=>$(id).scrollIntoView({behavior:'smooth'});
-function build(){const b=SEC.map(([id,t],i)=>({t:'Go to · '+t,k:String(i+1),f:()=>go(id)}));
+function build(){const b=[{t:'Start guided tour',k:'T',f:()=>window.__tourStart&&window.__tourStart()}].concat(SEC.map(([id,t],i)=>({t:'Go to · '+t,k:String(i+1),f:()=>go(id)})));
   b.push({t:'Play / pause replay',k:'space',f:()=>$('play').click()});
   q('#chips .chip').forEach(c=>b.push({t:'Toggle · '+c.dataset.r,k:'',f:()=>c.click()}));return b}
 function render(){const v=pin.value.toLowerCase();items=build().filter(x=>x.t.toLowerCase().includes(v));sel=Math.min(sel,Math.max(0,items.length-1));
@@ -406,6 +445,59 @@ fetch('data.json').then(r=>r.json()).then(D=>{
   if(sessionStorage&&0){}tick();
 }).catch(()=>$('boot').classList.add('out'));
 setTimeout(()=>$('boot').classList.add('out'),4000);
+})();
+</script>
+<div id="tour"><div id="spot"></div><div id="cap"><div class="st" id="tst"></div><h4 id="tth"></h4><p id="ttx"></p><div id="prog"><i></i></div>
+<div class="row"><button id="tprev">←</button><button id="tpl">Pause</button><button id="tnext">→</button><span class="sp"></span><button id="tx">Esc</button></div></div></div>
+<script>
+(function(){
+const q=(a,b=document)=>[...b.querySelectorAll(a)];
+function boot(D){
+ const M=D.metrics,O=M.odometry,L=M.localisation,K=M.calibration,f=(x,d=2)=>Number(x).toFixed(d);
+ const ex=[['01','Pipeline','10 stages · live data flow','pipeline','#22d3ee'],
+  ['02','Flight replay','3-D · '+Object.keys(D.runs).length+' estimators','replay','#34d399'],
+  ['03','Odometry',f(O['VIO + LIO'].ate_rmse_m,3)+' m best ATE','odometry','#e0115f'],
+  ['04','Calibration',f(K.camera_imu.td_err_ms,2)+' ms time-sync error','calibration','#10b981'],
+  ['05','Localisation',Math.round(100*L.relocalisation_trials.success_rate)+'% relocalised','localisation','#ef4444'],
+  ['06','Honest scope','simulation only','scope','#ff3d85']];
+ document.getElementById('explore').innerHTML=ex.map(([n,t,m,id,c])=>`<a class="ex" href="#${id}" style="--c:${c}"><div class="n">${n}</div><div class="t">${t}</div><div class="m">${m}</div></a>`).join('');
+ const g=x=>f(x,3);
+ const steps=[
+  ['#tiles','Headline numbers','Everything on this page is <b>measured against ground truth</b> in a simulated flight. Fused VIO+LIO reaches <b>'+g(O['VIO + LIO'].ate_rmse_m)+' m</b> ATE over a 465 m path.'],
+  ['#flow','The pipeline','IMU, camera and LiDAR feed calibration and time sync, then the filter core: MSCKF for vision, point-to-plane ICP for LiDAR, with an optional prior map.'],
+  ['#scene','Flight replay','Orbit and zoom the 3-D scene. White is ground truth. The uncalibrated VIO run drifts away; the calibrated ones stay on the path.'],
+  ['#errplot','Error over time','The trace follows the playhead. <b>IMU alone drifts '+f(O['IMU only'].ate_rmse_m,0)+' m</b>; fusing sensors keeps error under a metre.'],
+  ['#odotab','Odometry ablations','Skipping calibration costs <b>'+f(O['VIO, uncalibrated'].ate_rmse_m/O['VIO (MSCKF)'].ate_rmse_m,0)+'x</b> on VIO. Without LiDAR de-skew, LIO error rises from '+g(O['LIO'].ate_rmse_m)+' m to '+g(O['LIO, no de-skew'].ate_rmse_m)+' m.'],
+  ['#allan','Calibration','Allan deviation recovers the IMU noise parameters, and rotation-rate correlation finds the camera and LiDAR time offsets to about <b>0.15 ms</b>.'],
+  ['#caltab','Estimated vs. truth','Rotations land within 0.14°, camera lever arm within '+f(K.camera_lever_arm.err_cm,2)+' cm. The LiDAR lever arm did <b>not</b> beat CAD, so it is reported as a negative result.'],
+  ['#sens','Why sync matters','A camera clock error of 40 ms pushes VIO error up about 4x. Sub-millisecond sync is worth the effort.'],
+  ['#topdown','Map-based localisation','The vehicle starts from a wrong guess 6 m and 35° off. A coarse search plus ICP recovers it against a drifting prior map, in a changed scene.'],
+  ['#reloc','Relocalisation trials','<b>'+Math.round(100*L.relocalisation_trials.success_rate)+'%</b> of '+L.relocalisation_trials.n+' random kidnapped starts succeed (under 0.5 m and 2°). Failures are shown in red.'],
+  ['.note','Honest scope','Simulation only: idealised feature tracking, ground-truth initial state, no real rig yet. Next step is EuRoC / Newer College bags, then hardware.']];
+ let i=0,play=true,tm=null,t0=0;const T=7500,tour=document.getElementById('tour'),spot=document.getElementById('spot'),cap=document.getElementById('cap');
+ const $=id=>document.getElementById(id);
+ function place(){const el=document.querySelector(steps[i][0]);if(!el)return;const host=el.closest('.card')||el;const r=host.getBoundingClientRect(),p=10;
+  spot.style.cssText+=`;left:${r.left-p}px;top:${r.top-p}px;width:${r.width+2*p}px;height:${r.height+2*p}px`;
+  const ch=cap.offsetHeight||190,below=r.bottom+p+14+ch<innerHeight;let top=below?r.bottom+p+14:Math.max(60,r.top-p-14-ch);
+  if(!below&&top<60||r.height>innerHeight*.7)top=innerHeight-ch-40;
+  cap.style.top=Math.max(56,Math.min(top,innerHeight-ch-34))+'px';cap.style.left=Math.max(12,Math.min(r.left,innerWidth-cap.offsetWidth-12))+'px'}
+ function show(n){i=(n+steps.length)%steps.length;const el=document.querySelector(steps[i][0]);const h=el.closest('.card')||el,r0=h.getBoundingClientRect();window.scrollTo({top:Math.max(0,r0.top+scrollY-Math.max(70,(innerHeight-r0.height)/2)),behavior:'instant'});
+  $('tst').textContent='Step '+(i+1)+' / '+steps.length;$('tth').textContent=steps[i][1];$('ttx').innerHTML=steps[i][2];t0=performance.now();
+  const e0=performance.now();(function pl(){place();if(performance.now()-e0<1400)requestAnimationFrame(pl)})()}
+ function loop(){if(!tour.classList.contains('on'))return;if(play){const p=Math.min(1,(performance.now()-t0)/T);document.querySelector('#prog i').style.width=p*100+'%';if(p>=1){if(i===steps.length-1)return end();show(i+1)}}requestAnimationFrame(loop)}
+ function start(){tour.classList.add('on');play=true;$('tpl').textContent='Pause';show(0);requestAnimationFrame(loop)}
+ function end(){tour.classList.remove('on')}
+ $('tourbtn').onclick=start;$('palbtn').onclick=()=>$('kb').click();$('tx').onclick=end;$('tnext').onclick=()=>show(i+1);$('tprev').onclick=()=>show(i-1);
+ $('tpl').onclick=()=>{play=!play;$('tpl').textContent=play?'Pause':'Play';if(play){t0=performance.now()-0;}};
+ addEventListener('resize',()=>tour.classList.contains('on')&&place());addEventListener('scroll',()=>tour.classList.contains('on')&&place(),{passive:true});
+ addEventListener('keydown',e=>{const pal=$('pal').classList.contains('on');if(pal||e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey)return;
+  if(e.key.toLowerCase()==='t'){tour.classList.contains('on')?end():start()}
+  else if(tour.classList.contains('on')){if(e.key==='Escape')end();else if(e.key==='ArrowRight')show(i+1);else if(e.key==='ArrowLeft')show(i-1);else if(e.key===' '){e.stopImmediatePropagation();e.preventDefault();$('tpl').click()}}},true);
+ const nb=$('pls');
+ const kb=$('kb');kb.title='Command palette';
+ window.__tourStart=start;
+}
+fetch('data.json').then(r=>r.json()).then(boot);
 })();
 </script>
 </body>
